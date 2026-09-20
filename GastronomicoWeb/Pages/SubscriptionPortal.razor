@@ -1,0 +1,346 @@
+@page "/subscription"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject SaaSStateService State
+@inject IJSRuntime JS
+
+<PageTitle>Suscripción y Planes - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Suscripción y Planes</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Administrá tu plan, límites de capacidad y capacidades contratadas.</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData">
+            Actualizar
+        </MudButton>
+    </div>
+
+    @if (loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (subDetails != null)
+    {
+        var isExpired = subDetails.Status == "Expired" || subDetails.Status == "Suspended" || subDetails.Status == "Cancelled";
+        var chipColor = subDetails.Status == "Active" ? Color.Success : (subDetails.Status == "Trial" ? Color.Info : Color.Error);
+
+        <MudPaper Elevation="3" Class="pa-6 rounded-lg mb-6" Style="@(isExpired ? "border-left: 6px solid #f44336;" : "border-left: 6px solid #4caf50;")">
+            <div class="d-flex flex-wrap justify-space-between align-center">
+                <div>
+                    <div class="d-flex align-center gap-3">
+                        <MudText Typo="Typo.h5"><b>Plan Actual: @(subDetails.Plan?.Name ?? "Plan Básico")</b></MudText>
+                        <MudChip T="string" Color="@chipColor" Variant="Variant.Filled">@subDetails.Status</MudChip>
+                        @if (subDetails.Plan?.Code == "premium")
+                        {
+                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WorkspacePremium">
+                                PREMIUM ACTIVO
+                            </MudChip>
+                        }
+                    </div>
+
+                    <MudText Typo="Typo.body2" Class="mt-2" Color="Color.Secondary">
+                        @if (subDetails.Status == "Trial")
+                        {
+                            <span>Período de prueba vigente hasta: <b>@(subDetails.TrialEndsAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
+                        }
+                        else
+                        {
+                            <span>Período de facturación vigente hasta: <b>@(subDetails.CurrentPeriodEndUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
+                        }
+                    </MudText>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 mt-sm-0">
+                    @if (subDetails.Status == "Cancelled" || subDetails.Status == "Suspended" || subDetails.Status == "Expired")
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ReactivateSubscription">
+                            Reactivar Suscripción
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelSubscription">
+                            Cancelar Suscripción
+                        </MudButton>
+                    }
+                </div>
+            </div>
+
+            <!-- Resource Usage Meters -->
+            @if (subDetails.Plan != null && subDetails.Usage != null)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle2" Class="mb-3 font-weight-bold">Consumo de Capacidad y Recursos del Local</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">USUARIOS / MOZOS</MudText>
+                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Users</b> / @subDetails.Plan.MaxUsers</MudText>
+                            <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Users, subDetails.Plan.MaxUsers)"
+                                               Value="@GetProgressValue(subDetails.Usage.Users, subDetails.Plan.MaxUsers)" Class="mt-2" />
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">PRODUCTOS EN MENÚ</MudText>
+                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Products</b> / @subDetails.Plan.MaxProducts</MudText>
+                            <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Products, subDetails.Plan.MaxProducts)"
+                                               Value="@GetProgressValue(subDetails.Usage.Products, subDetails.Plan.MaxProducts)" Class="mt-2" />
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">MESAS DE SALÓN</MudText>
+                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Tables</b> / @subDetails.Plan.MaxTables</MudText>
+                            <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Tables, subDetails.Plan.MaxTables)"
+                                               Value="@GetProgressValue(subDetails.Usage.Tables, subDetails.Plan.MaxTables)" Class="mt-2" />
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">CLIENTES REGISTRADOS</MudText>
+                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Customers</b> / @subDetails.Plan.MaxCustomers</MudText>
+                            <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)"
+                                               Value="@GetProgressValue(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)" Class="mt-2" />
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudPaper>
+    }
+
+    <!-- Plans Comparison Grid -->
+    <MudText Typo="Typo.h5" Class="mb-4 font-weight-bold">Comparativa de Planes</MudText>
+
+    <MudGrid>
+        @foreach (var plan in plans)
+        {
+            var isCurrent = subDetails?.Plan?.Code == plan.Code || (subDetails?.Plan == null && plan.Code == "basic");
+            var isPremiumCard = plan.Code == "premium";
+
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="@(isCurrent ? 6 : 2)"
+                         Class="@(isCurrent ? "border-2 border-solid mud-border-primary" : "")"
+                         Style="@(isPremiumCard ? "background: linear-gradient(180deg, rgba(255,193,7,0.05) 0%, rgba(255,255,255,1) 100%);" : "")">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <div class="d-flex justify-space-between align-center">
+                                <div class="d-flex align-center gap-2">
+                                    <MudText Typo="Typo.h5"><b>@plan.Name</b></MudText>
+                                    @if (isPremiumCard)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="Color.Warning" />
+                                    }
+                                </div>
+                                @if (isCurrent)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled">ACTUAL</MudChip>
+                                }
+                            </div>
+                            <MudText Typo="Typo.h4" Color="Color.Primary" Class="mt-2">
+                                @if (plan.MonthlyPrice > 0)
+                                {
+                                    <span>$@plan.MonthlyPrice.ToString("N0") <MudText Typo="Typo.caption">/ mes (@plan.Currency)</MudText></span>
+                                }
+                                else
+                                {
+                                    <span>Gratis / $0</span>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@plan.Description</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-bold">Límites de Capacidad:</MudText>
+                        <MudList T="string" Dense="true" Class="mb-3">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.People">Hasta <b>@plan.MaxUsers</b> usuarios / mozos simultáneos</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.MenuBook">Hasta <b>@plan.MaxProducts</b> productos en carta</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.TableBar">Hasta <b>@plan.MaxTables</b> mesas en salón</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Badge">Hasta <b>@plan.MaxCustomers</b> clientes en cartera</MudListItem>
+                        </MudList>
+
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-bold">Módulos y Funcionalidades:</MudText>
+
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Ventas por mostrador y delivery</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Mapa de mesas y comandas de salón</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Caja, arqueo y turnos de cajero</MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Clientes, cuentas corrientes y fiados</MudListItem>
+                            
+                            @if (isPremiumCard)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>Control de insumos, compras y mermas</b>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>Fichas técnicas, recetas y descuento automático</b>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>Monitor KDS de cocina en vivo con SignalR</b>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>Libro de reservas de salón y comensales</b>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>División de cuentas (split bills) y propinas</b>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                    <b>Reportes avanzados: CMV, márgenes y exportación CSV</b>
+                                </MudListItem>
+                            }
+                            else
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
+                                    <span style="opacity: 0.6;">Sin insumos ni recetas avanzadas</span>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
+                                    <span style="opacity: 0.6;">Sin monitor de cocina KDS</span>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
+                                    <span style="opacity: 0.6;">Sin división de cuentas ni reservas</span>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudCardContent>
+
+                    <MudCardActions Class="pa-4">
+                        @if (isCurrent)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Disabled="true">
+                                Plan Actual en Uso
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="@(isPremiumCard ? Color.Warning : Color.Primary)"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@(isPremiumCard ? Icons.Material.Filled.WorkspacePremium : Icons.Material.Filled.SwapHoriz)"
+                                       OnClick="@(() => SwitchPlanAsync(plan.Code))"
+                                       Disabled="switching">
+                                @(switching ? "Cambiando..." : (isPremiumCard ? "Actualizar a Plan Premium" : "Cambiar a Plan Básico"))
+                            </MudButton>
+                        }
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private SubscriptionDetailsDto? subDetails;
+    private List<Plan> plans = new();
+    private bool loading = true;
+    private bool switching = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        try
+        {
+            var plansTask = Http.GetFromJsonAsync<List<Plan>>("api/billing/plans");
+            var subTask = Http.GetFromJsonAsync<SubscriptionDetailsDto>("api/billing/subscription");
+
+            await Task.WhenAll(plansTask, subTask);
+
+            plans = await plansTask ?? new();
+            subDetails = await subTask;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al cargar suscripción: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SwitchPlanAsync(string planCode)
+    {
+        switching = true;
+        try
+        {
+            var res = await Http.PostAsync($"api/billing/switch-plan/{planCode}", null);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Plan actualizado con éxito a {planCode.ToUpper()}!", Severity.Success);
+                await State.RefreshSubscriptionStateAsync();
+                await LoadData();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add("Error al cambiar plan: " + err, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            switching = false;
+        }
+    }
+
+    private async Task ReactivateSubscription()
+    {
+        var res = await Http.PostAsync("api/billing/reactivate", null);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Suscripción reactivada con éxito", Severity.Success);
+            await State.RefreshSubscriptionStateAsync();
+            await LoadData();
+        }
+        else
+        {
+            var err = await res.Content.ReadAsStringAsync();
+            Snackbar.Add(err, Severity.Warning);
+        }
+    }
+
+    private async Task CancelSubscription()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas cancelar la suscripción?");
+        if (!confirm) return;
+
+        var res = await Http.PostAsync("api/billing/cancel", null);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Suscripción cancelada", Severity.Info);
+            await State.RefreshSubscriptionStateAsync();
+            await LoadData();
+        }
+    }
+
+    private double GetProgressValue(int current, int max)
+    {
+        if (max <= 0) return 0;
+        return Math.Min(100, Math.Round(((double)current / max) * 100, 1));
+    }
+
+    private Color GetProgressColor(int current, int max)
+    {
+        var val = GetProgressValue(current, max);
+        if (val >= 90) return Color.Error;
+        if (val >= 70) return Color.Warning;
+        return Color.Primary;
+    }
+}

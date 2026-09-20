@@ -1,0 +1,301 @@
+@page "/onboarding"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject SaaSStateService State
+
+<PageTitle>Configuración Inicial - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-8">
+    <MudPaper Elevation="4" Class="pa-8 rounded-lg">
+        <div class="text-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" Color="Color.Primary" Style="font-size: 3.5rem;" />
+            <MudText Typo="Typo.h4" Class="mt-2 font-weight-bold">¡Bienvenido a tu nuevo sistema!</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary">Configura tu negocio en solo unos pasos para empezar a vender.</MudText>
+        </div>
+
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" ActivePanelIndex="@activeStep"
+                 Color="Color.Primary">
+
+            @* PASO 1: DATOS DEL NEGOCIO *@
+            <MudTabPanel Text="1. Perfil del Negocio" Icon="@Icons.Material.Filled.Store">
+                <MudText Typo="Typo.h6" Class="mb-4">Información básica y zona horaria</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="businessModel.TradeName" Label="Nombre de Fantasía" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="businessModel.Phone" Label="Teléfono de Contacto" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="businessModel.Address" Label="Dirección del Local" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="businessModel.TimeZoneId" Label="Zona Horaria" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("America/Argentina/Buenos_Aires")">Argentina (UTC-3)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Santiago")">Chile (UTC-3/UTC-4)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Montevideo")">Uruguay (UTC-3)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Lima")">Perú / Colombia (UTC-5)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Mexico_City")">México (UTC-6)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Madrid")">España (UTC+1/UTC+2)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="businessModel.TablesEnabled" Label="Habilitar gestión de Mesas y Salón" Color="Color.Primary" />
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex justify-end mt-6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBusinessProfile" EndIcon="@Icons.Material.Filled.ArrowForward">
+                        Continuar a Categorías
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
+            @* PASO 2: CATEGORÍAS *@
+            <MudTabPanel Text="2. Categorías" Icon="@Icons.Material.Filled.Category">
+                <MudText Typo="Typo.h6" Class="mb-4">Categorías para organizar tu menú</MudText>
+                
+                <div class="d-flex gap-2 mb-4">
+                    <MudTextField @bind-Value="newCategoryName" Label="Nueva Categoría (Ej: Postres, Promos)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudCheckBox @bind-Value="newCategoryTracksStock" Label="Controla Stock" Color="Color.Primary" T="bool" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCategory" Disabled="@string.IsNullOrWhiteSpace(newCategoryName)">
+                        Agregar
+                    </MudButton>
+                </div>
+
+                <MudList T="string" Dense="true" Class="mb-6">
+                    @foreach (var cat in categories)
+                    {
+                        <MudListItem T="string">
+                            <div class="d-flex justify-space-between align-center">
+                                <span><b>@cat.Name</b> @(cat.TracksStock ? "(Control de Stock)" : "")</span>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Activa</MudChip>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+
+                <div class="d-flex justify-space-between mt-6">
+                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 0)">Atrás</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 2)" EndIcon="@Icons.Material.Filled.ArrowForward">
+                        Continuar a Productos
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
+            @* PASO 3: PRODUCTOS *@
+            <MudTabPanel Text="3. Primeros Productos" Icon="@Icons.Material.Filled.Fastfood">
+                <MudText Typo="Typo.h6" Class="mb-4">Agregá tus primeros productos para vender</MudText>
+
+                <MudPaper Elevation="1" Class="pa-4 mb-4" Style="background-color: rgba(255,255,255,0.03);">
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="newProduct.Name" Label="Nombre (Ej: Empanada Carne)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudNumericField @bind-Value="newProduct.Price" Label="Precio ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudSelect T="int?" @bind-Value="newProduct.CategoryId" Label="Categoría" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                @foreach (var c in categories)
+                                {
+                                    <MudSelectItem T="int?" Value="@c.Id">@c.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="AddProduct"
+                                       Disabled="@(string.IsNullOrWhiteSpace(newProduct.Name) || newProduct.Price <= 0)">
+                                Cargar
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                @if (products.Any())
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Productos cargados (@products.Count):</MudText>
+                    <MudList T="string" Dense="true">
+                        @foreach (var p in products)
+                        {
+                            <MudListItem T="string">
+                                <div class="d-flex justify-space-between">
+                                    <span>@p.Name</span>
+                                    <b>$@p.Price</b>
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+
+                <div class="d-flex justify-space-between mt-6">
+                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 1)">Atrás</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 3)" EndIcon="@Icons.Material.Filled.ArrowForward">
+                        Continuar a Mesas
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
+            @* PASO 4: MESAS *@
+            <MudTabPanel Text="4. Mesas y Finalización" Icon="@Icons.Material.Filled.TableRestaurant">
+                <MudText Typo="Typo.h6" Class="mb-2">Generación rápida de mesas para el salón</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Podés generar automáticamente mesas numeradas para tu salón.</MudText>
+
+                <div class="d-flex align-center gap-4 mb-6">
+                    <MudNumericField @bind-Value="tablesCountToGenerate" Label="Cantidad de mesas iniciales" Variant="Variant.Outlined" Min="1" Max="50" Style="max-width: 250px;" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="GenerateTables">
+                        Generar @tablesCountToGenerate Mesas
+                    </MudButton>
+                </div>
+
+                @if (existingTables.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        Ya tienes @existingTables.Count mesas configuradas en tu local.
+                    </MudAlert>
+                }
+
+                <div class="d-flex justify-space-between mt-8">
+                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 2)">Atrás</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" OnClick="FinalizeOnboarding">
+                        🚀 FINALIZAR Y ENTRAR AL SISTEMA
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private int activeStep = 0;
+    private BusinessUpdateRequest businessModel = new() { TradeName = "", TimeZoneId = "America/Argentina/Buenos_Aires", TablesEnabled = true };
+    private List<Category> categories = new();
+    private List<Product> products = new();
+    private List<Table> existingTables = new();
+
+    private string newCategoryName = "";
+    private bool newCategoryTracksStock = false;
+    private ProductWriteRequest newProduct = new() { Price = 1000 };
+    private int tablesCountToGenerate = 6;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var biz = await Http.GetFromJsonAsync<Business>("api/Business");
+            if (biz != null)
+            {
+                businessModel.TradeName = biz.TradeName;
+                businessModel.Address = biz.Address;
+                businessModel.Phone = biz.Phone;
+                businessModel.LegalName = biz.LegalName;
+                businessModel.TaxId = biz.TaxId;
+                businessModel.TimeZoneId = biz.TimeZoneId ?? "America/Argentina/Buenos_Aires";
+                businessModel.TablesEnabled = biz.TablesEnabled;
+            }
+
+            await LoadCategories();
+            await LoadProducts();
+            await LoadTables();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al cargar configuración: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        var res = await Http.GetFromJsonAsync<List<Category>>("api/Categories");
+        categories = res ?? new();
+        if (categories.Any() && !newProduct.CategoryId.HasValue)
+            newProduct.CategoryId = categories.First().Id;
+    }
+
+    private async Task LoadProducts()
+    {
+        var res = await Http.GetFromJsonAsync<PagedResult<Product>>("api/Producto?pageSize=100");
+        products = res?.Items ?? new();
+    }
+
+    private async Task LoadTables()
+    {
+        var res = await Http.GetFromJsonAsync<List<Table>>("api/Tables");
+        existingTables = res ?? new();
+    }
+
+    private async Task SaveBusinessProfile()
+    {
+        if (string.IsNullOrWhiteSpace(businessModel.TradeName))
+        {
+            Snackbar.Add("El nombre de fantasía es obligatorio", Severity.Warning);
+            return;
+        }
+
+        var res = await Http.PutAsJsonAsync("api/Business", businessModel);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Perfil actualizado", Severity.Success);
+            activeStep = 1;
+        }
+    }
+
+    private async Task AddCategory()
+    {
+        var res = await Http.PostAsJsonAsync("api/Categories", new Category
+        {
+            Name = newCategoryName.Trim(),
+            TracksStock = newCategoryTracksStock,
+            SortOrder = categories.Count + 1,
+            IsActive = true
+        });
+
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add($"Categoría '{newCategoryName}' agregada", Severity.Success);
+            newCategoryName = "";
+            newCategoryTracksStock = false;
+            await LoadCategories();
+        }
+    }
+
+    private async Task AddProduct()
+    {
+        var res = await Http.PostAsJsonAsync("api/Producto", newProduct);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add($"Producto '{newProduct.Name}' agregado", Severity.Success);
+            newProduct = new ProductWriteRequest { CategoryId = categories.FirstOrDefault()?.Id, Price = 1000 };
+            await LoadProducts();
+        }
+    }
+
+    private async Task GenerateTables()
+    {
+        int startNumber = existingTables.Any() ? existingTables.Max(t => t.Number) + 1 : 1;
+        for (int i = 0; i < tablesCountToGenerate; i++)
+        {
+            await Http.PostAsJsonAsync("api/Tables", new Table
+            {
+                Number = startNumber + i,
+                Status = "Libre"
+            });
+        }
+        Snackbar.Add($"Se generaron {tablesCountToGenerate} mesas", Severity.Success);
+        await LoadTables();
+    }
+
+    private async Task FinalizeOnboarding()
+    {
+        var res = await Http.PostAsync("api/Business/onboarding/complete", null);
+        if (res.IsSuccessStatusCode)
+        {
+            if (State.CurrentBusiness != null)
+                State.CurrentBusiness.OnboardingCompleted = true;
+            Snackbar.Add("¡Onboarding completado con éxito! Bienvenido al Punto de Venta.", Severity.Success);
+            Nav.NavigateTo("/");
+        }
+    }
+}

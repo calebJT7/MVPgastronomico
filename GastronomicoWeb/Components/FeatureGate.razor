@@ -1,0 +1,69 @@
+@inject SaaSStateService SaaSState
+@inject NavigationManager Navigation
+
+@if (IsEnabled)
+{
+    @ChildContent
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="my-8">
+        <MudCard Elevation="4" Class="pa-6 rounded-lg text-center" Style="border: 2px dashed var(--mud-palette-warning); background: var(--mud-palette-surface);">
+            <MudCardContent>
+                <div class="d-flex justify-center mb-4">
+                    <MudAvatar Color="Color.Warning" Size="Size.Large" Class="pa-4">
+                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Large" />
+                    </MudAvatar>
+                </div>
+                
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Class="mb-2 font-weight-bold">
+                    PLAN PREMIUM
+                </MudChip>
+
+                <MudText Typo="Typo.h5" Class="font-weight-bold mb-2">
+                    @(string.IsNullOrWhiteSpace(FeatureName) ? "Funcionalidad Premium" : FeatureName)
+                </MudText>
+
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6 mx-auto" Style="max-width: 600px;">
+                    @(string.IsNullOrWhiteSpace(Description) 
+                        ? "Esta función no está disponible en tu plan actual. Actualizá a Plan Premium para desbloquear insumos avanzados, recetas de costo, KDS de cocina, división de cuentas, reservas y reportes de rentabilidad."
+                        : Description)
+                </MudText>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Star"
+                           OnClick="@(() => Navigation.NavigateTo("/subscription"))">
+                    Mejorar a Plan Premium
+                </MudButton>
+            </MudCardContent>
+        </MudCard>
+    </MudContainer>
+}
+
+@code {
+    [Parameter]
+    public string Feature { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? FeatureName { get; set; }
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool IsEnabled => string.IsNullOrWhiteSpace(Feature) || SaaSState.HasFeature(Feature);
+
+    protected override void OnInitialized()
+    {
+        SaaSState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SaaSState.OnChange -= StateHasChanged;
+    }
+}

@@ -1,11 +1,49 @@
 version: '3.8'
+
 services:
   db:
-    image: postgres:latest
-    container_name: rotiseria_db
+    image: postgres:16-alpine
+    container_name: gastronomico_db
+    restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: rotiseria_pos
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
+      POSTGRES_DB: ${DB_NAME:-gastronomico_saas}
     ports:
-      - "5433:5432"
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-gastronomico_saas}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gastronomico_saas_app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=gastronomico_saas;Username=admin;Password=password123
+      - Jwt__Key=SUPER_SECRET_KEY_FOR_SAAS_PRODUCTION_MUST_BE_AT_LEAST_64_CHARACTERS_LONG_2026_XYZ
+      - Jwt__Issuer=GastronomicoSaaS
+      - Jwt__Audience=GastronomicoClient
+      - Jwt__ExpiryMinutes=1440
+      - PaymentGateway__Provider=Dev
+      - EmailSettings__Provider=Dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:

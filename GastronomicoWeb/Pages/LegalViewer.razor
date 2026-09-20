@@ -1,0 +1,71 @@
+@page "/legal"
+@page "/legal/{DocType}"
+@using RotiseriaWeb.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Documentación Legal - SaaS Gastronómico</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-6">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4">Términos y Condiciones Legales</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Marco contractual y políticas de uso de la plataforma</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/"))">
+            Volver al Sistema
+        </MudButton>
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (_documents.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No hay documentos legales publicados actualmente.</MudAlert>
+    }
+    else
+    {
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+            @foreach (var doc in _documents)
+            {
+                <MudTabPanel Text="@doc.Title" Icon="@Icons.Material.Filled.Gavel">
+                    <div class="d-flex justify-space-between align-center mb-3">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Versión: @doc.Version</MudChip>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Vigente desde: @doc.EffectiveAtUtc.ToLocalTime().ToString("dd/MM/yyyy")
+                        </MudText>
+                    </div>
+                    <MudDivider Class="mb-4" />
+                    <div style="white-space: pre-line; line-height: 1.6; font-size: 0.95rem;">
+                        @doc.Body
+                    </div>
+                </MudTabPanel>
+            }
+        </MudTabs>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? DocType { get; set; }
+
+    private bool _loading = true;
+    private List<LegalDocument> _documents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _documents = await Http.GetFromJsonAsync<List<LegalDocument>>("api/legal") ?? new();
+        }
+        catch
+        {
+            _documents = new();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

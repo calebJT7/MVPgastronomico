@@ -1,0 +1,326 @@
+@page "/recetas"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Recetas y Costeo - SaaS Gastronómico</PageTitle>
+
+<FeatureGate Feature="@FeatureCodes.Recipes"
+             FeatureName="Fichas Técnicas y Recetas (BOM)"
+             Description="Definí los ingredientes de cada plato para calcular automáticamente el costo de mercadería vendida (CMV), margen de rentabilidad real y descontar insumos con cada venta.">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Recetas y Costeo (Escandallos)</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Composición de platos, costeo de materias primas y deducción automática.</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadProductsAndSupplies">
+            Actualizar
+        </MudButton>
+    </div>
+
+    <!-- Search filter -->
+    <MudCard Elevation="1" Class="pa-3 mb-4">
+        <MudTextField @bind-Value="searchString" Placeholder="Buscar producto por nombre..." Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" />
+    </MudCard>
+
+    @if (loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (!filteredProducts.Any())
+    {
+        <MudPaper Class="pa-6 text-center" Elevation="1">
+            <MudText Typo="Typo.body1" Color="Color.Secondary">No se encontraron productos.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudTable Items="@filteredProducts" Dense="true" Hover="true" Striped="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>Producto</MudTh>
+                <MudTh>Categoría</MudTh>
+                <MudTh Style="text-align: right;">Precio de Venta</MudTh>
+                <MudTh Style="text-align: center;">Acción</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><b>@context.Name</b></MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.CategoryName) ? "General" : context.CategoryName)</MudTd>
+                <MudTd Style="text-align: right; font-weight: bold;">
+                    $@context.Price.ToString("N2")
+                </MudTd>
+                <MudTd Style="text-align: center;">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.RestaurantMenu"
+                               OnClick="@(() => OpenRecipeModal(context))">
+                        Configurar Receta
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <!-- Dialog Recipe Configurator -->
+    <MudDialog @bind-Visible="recipeDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                Receta: <b>@selectedProduct?.Name</b>
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            @if (loadingRecipe)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else
+            {
+                <!-- Margin and cost summary banner -->
+                <MudCard Elevation="0" Class="pa-4 mb-4" Style="background: rgba(33, 150, 243, 0.08); border-radius: 8px;">
+                    <MudGrid>
+                        <MudItem xs="4">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">PRECIO DE VENTA</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold">$@(selectedProduct?.Price.ToString("N2") ?? "0.00")</MudText>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">COSTO INGREDIENTES</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Error" Class="font-weight-bold">$@ComputedTotalCost.ToString("N2")</MudText>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">MARGEN ESTIMADO</MudText>
+                            <MudChip T="string" Color="@MarginColor" Size="Size.Medium" Class="font-weight-bold">
+                                @ComputedMargin.ToString("N1")%
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                </MudCard>
+
+                <!-- Ingredients Table / Inputs -->
+                <div class="d-flex justify-space-between align-center mb-2">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Ingredientes de la Receta</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="AddIngredientRow">
+                        Agregar Insumo
+                    </MudButton>
+                </div>
+
+                @if (!recipeRows.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-3">
+                        Este producto no tiene ingredientes asignados todavía. Agregá insumos para calcular su costo y descontar stock automáticamente.
+                    </MudAlert>
+                }
+                else
+                {
+                    <div style="max-height: 320px; overflow-y: auto;">
+                        @foreach (var (row, index) in recipeRows.Select((r, i) => (r, i)))
+                        {
+                            var selectedSupply = availableSupplies.FirstOrDefault(s => s.Id == row.SupplyId);
+                            var unit = selectedSupply?.Unit ?? "";
+                            var unitCost = selectedSupply?.CostPerUnit ?? 0m;
+                            var subtotal = row.Quantity * unitCost;
+
+                            <div class="d-flex align-center gap-2 mb-2 pa-2 rounded" style="background: rgba(0,0,0,0.02); border: 1px solid #eee;">
+                                <div style="flex: 2;">
+                                    <MudSelect T="int" @bind-Value="row.SupplyId" Label="Insumo" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                                        @foreach (var sup in availableSupplies)
+                                        {
+                                            <MudSelectItem Value="@sup.Id">@sup.Name (@sup.Unit - $@sup.CostPerUnit.ToString("N2"))</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+                                <div style="flex: 1;">
+                                    <MudNumericField @bind-Value="row.Quantity" Label="@($"Cant ({unit})")" Min="0.001m" Format="N3" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                                </div>
+                                <div style="flex: 1; text-align: right;">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Subtotal</MudText>
+                                    <MudText Typo="Typo.body2" Class="font-weight-bold">$@subtotal.ToString("N2")</MudText>
+                                </div>
+                                <div>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveIngredientRow(index))" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => recipeDialogVisible = false)">Cerrar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveRecipeAsync" Disabled="savingRecipe">
+                @(savingRecipe ? "Guardando..." : "Guardar Receta")
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+
+</FeatureGate>
+
+@code {
+    private List<Product> products = new();
+    private List<SupplyDto> availableSupplies = new();
+    private bool loading = true;
+    private string searchString = string.Empty;
+
+    private bool recipeDialogVisible = false;
+    private bool loadingRecipe = false;
+    private bool savingRecipe = false;
+    private Product? selectedProduct;
+    private List<RecipeRowModel> recipeRows = new();
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+
+    private IEnumerable<Product> filteredProducts => products.Where(p =>
+        string.IsNullOrWhiteSpace(searchString) || p.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+    private decimal ComputedTotalCost => recipeRows.Sum(r =>
+    {
+        var sup = availableSupplies.FirstOrDefault(s => s.Id == r.SupplyId);
+        return r.Quantity * (sup?.CostPerUnit ?? 0m);
+    });
+
+    private decimal ComputedMargin
+    {
+        get
+        {
+            if (selectedProduct == null || selectedProduct.Price <= 0) return 0;
+            var cost = ComputedTotalCost;
+            return ((selectedProduct.Price - cost) / selectedProduct.Price) * 100m;
+        }
+    }
+
+    private Color MarginColor
+    {
+        get
+        {
+            var m = ComputedMargin;
+            if (m >= 60) return Color.Success;
+            if (m >= 40) return Color.Warning;
+            return Color.Error;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductsAndSupplies();
+    }
+
+    private async Task LoadProductsAndSupplies()
+    {
+        loading = true;
+        try
+        {
+            var pTask = Http.GetFromJsonAsync<List<Product>>("api/products");
+            var sTask = Http.GetFromJsonAsync<List<SupplyDto>>("api/supplies");
+            await Task.WhenAll(pTask, sTask);
+
+            products = await pTask ?? new();
+            availableSupplies = await sTask ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar datos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OpenRecipeModal(Product product)
+    {
+        selectedProduct = product;
+        recipeDialogVisible = true;
+        loadingRecipe = true;
+        recipeRows.Clear();
+
+        try
+        {
+            var recipe = await Http.GetFromJsonAsync<ProductRecipeDto>($"api/recipes/product/{product.Id}");
+            if (recipe != null && recipe.Items.Any())
+            {
+                recipeRows = recipe.Items.Select(i => new RecipeRowModel
+                {
+                    SupplyId = i.SupplyId,
+                    Quantity = i.Quantity
+                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al consultar receta: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loadingRecipe = false;
+        }
+    }
+
+    private void AddIngredientRow()
+    {
+        if (!availableSupplies.Any())
+        {
+            Snackbar.Add("Primero debés registrar insumos en la sección de Insumos.", Severity.Warning);
+            return;
+        }
+
+        recipeRows.Add(new RecipeRowModel
+        {
+            SupplyId = availableSupplies.First().Id,
+            Quantity = 0.1m
+        });
+    }
+
+    private void RemoveIngredientRow(int index)
+    {
+        if (index >= 0 && index < recipeRows.Count)
+        {
+            recipeRows.RemoveAt(index);
+        }
+    }
+
+    private async Task SaveRecipeAsync()
+    {
+        if (selectedProduct == null) return;
+
+        savingRecipe = true;
+        try
+        {
+            var req = new SaveRecipeRequest
+            {
+                Items = recipeRows.Where(r => r.SupplyId > 0 && r.Quantity > 0).Select(r => new RecipeItemInputDto
+                {
+                    SupplyId = r.SupplyId,
+                    Quantity = r.Quantity
+                }).ToList()
+            };
+
+            var res = await Http.PostAsJsonAsync($"api/recipes/product/{selectedProduct.Id}", req);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Receta guardada exitosamente", Severity.Success);
+                recipeDialogVisible = false;
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al guardar receta: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingRecipe = false;
+        }
+    }
+
+    private class RecipeRowModel
+    {
+        public int SupplyId { get; set; }
+        public decimal Quantity { get; set; }
+    }
+}

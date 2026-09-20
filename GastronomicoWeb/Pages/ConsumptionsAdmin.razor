@@ -1,0 +1,99 @@
+@page "/consumptions"
+@attribute [Authorize(Roles = "Owner,Admin,Manager")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Consumo de Personal - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Consumo de Empleados</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de comidas y bebidas consumidas por el equipo de trabajo</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            Registrar Consumo
+        </MudButton>
+    </div>
+
+    <MudTable Items="@consumptions" Hover="true" Elevation="4" Loading="@loading">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Empleado</MudTh>
+            <MudTh>Producto Consumido</MudTh>
+            <MudTh>Monto</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Fecha">@context.Date.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Empleado"><b>@context.EmployeeName</b></MudTd>
+            <MudTd DataLabel="Producto">@context.ProductName</MudTd>
+            <MudTd DataLabel="Monto">$ @context.Amount</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+<MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Registrar Consumo de Personal</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="newConsumption.EmployeeName" Label="Nombre del Empleado" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="newConsumption.ProductName" Label="Producto (Ej: 2 Empanadas y Coca Cola)" Required="true" Class="mb-3" />
+        <MudNumericField @bind-Value="newConsumption.Amount" Label="Valor Estimado ($)" Min="0" Class="mb-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveConsumption"
+                   Disabled="@(string.IsNullOrWhiteSpace(newConsumption.EmployeeName) || string.IsNullOrWhiteSpace(newConsumption.ProductName))">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<EmployeeConsumption> consumptions = new();
+    private bool loading = true;
+    private bool dialogOpen = false;
+    private EmployeeConsumption newConsumption = new();
+    private DialogOptions dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConsumptions();
+    }
+
+    private async Task LoadConsumptions()
+    {
+        loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<EmployeeConsumption>>("api/EmployeeConsumptions");
+            consumptions = res ?? new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        newConsumption = new EmployeeConsumption { Date = DateTime.UtcNow };
+        dialogOpen = true;
+    }
+
+    private async Task SaveConsumption()
+    {
+        var res = await Http.PostAsJsonAsync("api/EmployeeConsumptions", newConsumption);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Consumo registrado", Severity.Success);
+            dialogOpen = false;
+            await LoadConsumptions();
+        }
+        else
+        {
+            Snackbar.Add("Error al registrar consumo", Severity.Error);
+        }
+    }
+}

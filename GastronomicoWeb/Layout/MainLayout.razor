@@ -1,0 +1,140 @@
+@using MudBlazor
+@using RotiseriaWeb.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject SaaSStateService SaaSState
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_currentTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<MudLayout>
+    <MudAppBar Color="Color.Primary" Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@((e) => DrawerToggle())" />
+        
+        <MudText Typo="Typo.h5" Class="ml-3 font-weight-bold">
+            @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")
+        </MudText>
+
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                @if (!string.IsNullOrWhiteSpace(SaaSState.SubscriptionStatus))
+                {
+                    <MudChip T="string" Size="Size.Small"
+                             Color="@GetSubscriptionColor(SaaSState.SubscriptionStatus)"
+                             Variant="Variant.Filled"
+                             Class="mr-2 cursor-pointer"
+                             OnClick="@(() => Navigation.NavigateTo("/subscription"))">
+                        @GetSubscriptionLabel(SaaSState.SubscriptionStatus)
+                    </MudChip>
+                }
+
+                <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                               Color="Color.Inherit"
+                               OnClick="@(() => _isDarkMode = !_isDarkMode)"
+                               Class="mr-2" />
+
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <div class="px-4 py-2">
+                        <MudText Typo="Typo.subtitle2">@(string.IsNullOrWhiteSpace(SaaSState.UserFullName) ? context.User.Identity?.Name : SaaSState.UserFullName)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rol: @(SaaSState.UserRole)</MudText>
+                    </div>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Store" OnClick="@(() => Navigation.NavigateTo("/settings"))">Configuración del Local</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.CardMembership" OnClick="@(() => Navigation.NavigateTo("/subscription"))">Mi Suscripción</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Gavel" OnClick="@(() => Navigation.NavigateTo("/legal"))">Términos y Privacidad</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error" OnClick="LogoutAsync">Cerrar Sesión</MudMenuItem>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                               Color="Color.Inherit"
+                               OnClick="@(() => _isDarkMode = !_isDarkMode)"
+                               Class="mr-2" />
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/login"))">Iniciar Sesión</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="my-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    private bool _isDarkMode = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SaaSState.OnChange += StateHasChanged;
+        await SaaSState.InitializeAsync();
+    }
+
+    public void Dispose()
+    {
+        SaaSState.OnChange -= StateHasChanged;
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (AuthStateProvider is JwtAuthenticationStateProvider jwtProvider)
+        {
+            await jwtProvider.MarkUserAsLoggedOutAsync();
+        }
+        SaaSState.Clear();
+        Navigation.NavigateTo("/login");
+    }
+
+    private Color GetSubscriptionColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Trial" => Color.Info,
+        "PastDue" => Color.Warning,
+        "Canceled" => Color.Error,
+        "Expired" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetSubscriptionLabel(string status) => status switch
+    {
+        "Active" => "Plan Activo",
+        "Trial" => "Prueba Gratuita",
+        "PastDue" => "Pago Pendiente",
+        "Canceled" => "Cancelado",
+        "Expired" => "Expirado",
+        _ => status
+    };
+
+    private MudTheme _currentTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#FF6D00",
+            Secondary = "#FFD600",
+            AppbarBackground = "#FF6D00",
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#FF8A65",
+            AppbarBackground = "#27272f",
+            Background = "#1a1a27",
+            Surface = "#1e1e2d",
+        }
+    };
+}

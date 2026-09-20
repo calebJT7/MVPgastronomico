@@ -1,0 +1,436 @@
+@page "/caja"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Caja y Turnos - SaaS Gastronómico</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Color="Color.Primary">Caja y Arqueo</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión de aperturas, cobros en vivo, retiros e ingresos y arqueo de cierre.</MudText>
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadCurrentShift">
+            Actualizar
+        </MudButton>
+    </div>
+</div>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+}
+else
+{
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+        <MudTabPanel Text="Turno Actual" Icon="@Icons.Material.Filled.PointOfSale" Class="pa-4">
+            @if (currentShift == null || !currentShift.IsOpen)
+            {
+                <MudCard Elevation="3" Class="pa-6 max-w-md mx-auto my-6 text-center" Style="max-width: 500px; margin: 0 auto;">
+                    <MudAvatar Color="Color.Default" Size="Size.Large" Class="mb-3 mx-auto">
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" />
+                    </MudAvatar>
+                    <MudText Typo="Typo.h5" Class="mb-2 font-weight-bold">Caja Cerrada</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                        Para registrar pedidos en salón, mostrador o delivery, debés abrir un nuevo turno de caja.
+                    </MudText>
+
+                    <MudNumericField @bind-Value="openModel.InitialCash" Label="Fondo Inicial de Caja ($)" Variant="Variant.Outlined" Min="0m" Format="N2" Class="mb-3" />
+                    <MudTextField @bind-Value="openModel.Notes" Label="Notas / Observaciones de Apertura" Variant="Variant.Outlined" Lines="2" Class="mb-4" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
+                               StartIcon="@Icons.Material.Filled.LockOpen" OnClick="OpenShiftAsync" Disabled="saving">
+                        @(saving ? "Abriendo..." : "Abrir Caja")
+                    </MudButton>
+                </MudCard>
+            }
+            else
+            {
+                <!-- Shift is Open -->
+                <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-4 d-flex justify-space-between align-center" Elevation="2">
+                    <div>
+                        <b>Caja Abierta por:</b> @currentShift.UserName | 
+                        <b>Apertura:</b> @currentShift.OpenedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        @if (!string.IsNullOrWhiteSpace(currentShift.Notes))
+                        {
+                            <span> | <i>@currentShift.Notes</i></span>
+                        }
+                    </div>
+                </MudAlert>
+
+                <!-- Financial Metrics Grid -->
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">FONDO INICIAL</MudText>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">$@currentShift.InitialCash.ToString("N2")</MudText>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Success">VENTAS EFECTIVO</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success" Class="font-weight-bold">+$@currentShift.TotalCashSales.ToString("N2")</MudText>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2" Class="pa-3">
+                            <MudText Typo="Typo.caption" Color="Color.Primary">VENTAS ELECTRÓNICAS</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
+                                $@((currentShift.TotalCardSales + currentShift.TotalTransferSales + currentShift.TotalOtherSales).ToString("N2"))
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Tarjeta: $@currentShift.TotalCardSales.ToString("N2") | Transf: $@currentShift.TotalTransferSales.ToString("N2")
+                            </MudText>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="3" Class="pa-3" Style="background: rgba(33, 150, 243, 0.08); border-left: 4px solid var(--mud-palette-primary);">
+                            <MudText Typo="Typo.caption" Color="Color.Primary">EFECTIVO ESPERADO EN CAJA</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold">$@currentShift.ExpectedCash.ToString("N2")</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                +Ingresos: $@currentShift.TotalInflows.ToString("N2") | -Retiros: $@currentShift.TotalOutflows.ToString("N2")
+                            </MudText>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Quick actions -->
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" OnClick="@(() => OpenMovementDialog(CashMovementType.Inflow))">
+                        Ingreso Extraordinario
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.RemoveCircle" OnClick="@(() => OpenMovementDialog(CashMovementType.Outflow))">
+                        Retiro / Gasto de Caja
+                    </MudButton>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Lock" OnClick="OpenCloseShiftDialog">
+                        Cerrar Turno (Arqueo)
+                    </MudButton>
+                </div>
+
+                <!-- Shift Movements Table -->
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Movimientos del Turno</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (currentShift.Movements == null || !currentShift.Movements.Any())
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No se han registrado movimientos extraordinarios en este turno.</MudText>
+                        }
+                        else
+                        {
+                            <MudTable Items="@currentShift.Movements" Dense="true" Hover="true">
+                                <HeaderContent>
+                                    <MudTh>Hora</MudTh>
+                                    <MudTh>Tipo</MudTh>
+                                    <MudTh>Motivo</MudTh>
+                                    <MudTh>Usuario</MudTh>
+                                    <MudTh Style="text-align: right;">Monto</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>@context.CreatedAtUtc.ToLocalTime().ToString("HH:mm")</MudTd>
+                                    <MudTd>
+                                        @if (context.Type == CashMovementType.Inflow)
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Size="Size.Small">Ingreso</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Egreso/Retiro</MudChip>
+                                        }
+                                    </MudTd>
+                                    <MudTd>@context.Reason</MudTd>
+                                    <MudTd>@context.CreatedByUserName</MudTd>
+                                    <MudTd Style="text-align: right; font-weight: bold;">
+                                        @(context.Type == CashMovementType.Inflow ? "+" : "-")$@context.Amount.ToString("N2")
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Historial de Cajas" Icon="@Icons.Material.Filled.History" OnClick="LoadHistory">
+            @if (loadingHistory)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else if (!shiftHistory.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4 text-center">No hay registros de turnos de caja anteriores.</MudText>
+            }
+            else
+            {
+                <MudTable Items="@shiftHistory" Dense="true" Hover="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Apertura</MudTh>
+                        <MudTh>Cierre</MudTh>
+                        <MudTh>Cajero</MudTh>
+                        <MudTh Style="text-align: right;">Inicial</MudTh>
+                        <MudTh Style="text-align: right;">Esperado</MudTh>
+                        <MudTh Style="text-align: right;">Real (Contado)</MudTh>
+                        <MudTh Style="text-align: right;">Diferencia</MudTh>
+                        <MudTh>Estado</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.OpenedAtUtc.ToLocalTime().ToString("dd/MM/yy HH:mm")</MudTd>
+                        <MudTd>@(context.ClosedAtUtc.HasValue ? context.ClosedAtUtc.Value.ToLocalTime().ToString("dd/MM/yy HH:mm") : "-")</MudTd>
+                        <MudTd>@context.UserName</MudTd>
+                        <MudTd Style="text-align: right;">$@context.InitialCash.ToString("N2")</MudTd>
+                        <MudTd Style="text-align: right;">$@context.ExpectedCash.ToString("N2")</MudTd>
+                        <MudTd Style="text-align: right; font-weight: bold;">$@context.ActualCash.ToString("N2")</MudTd>
+                        <MudTd Style="text-align: right;">
+                            <span style="color: @(context.Difference == 0 ? "green" : (context.Difference > 0 ? "blue" : "red")); font-weight: bold;">
+                                @(context.Difference >= 0 ? "+" : "")$@context.Difference.ToString("N2")
+                            </span>
+                        </MudTd>
+                        <MudTd>
+                            @if (context.IsOpen)
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">Abierta</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Size="Size.Small">Cerrada</MudChip>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+    </MudTabs>
+}
+
+<!-- Dialog: Add Cash Movement -->
+<MudDialog @bind-Visible="movementDialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(movementModel.Type == CashMovementType.Inflow ? "Ingreso de Dinero" : "Retiro de Dinero")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudNumericField @bind-Value="movementModel.Amount" Label="Monto ($)" Variant="Variant.Outlined" Min="0.01m" Format="N2" Class="mb-3" />
+        <MudTextField @bind-Value="movementModel.Reason" Label="Motivo o Detalle" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => movementDialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveMovementAsync" Disabled="savingMovement">
+            @(savingMovement ? "Guardando..." : "Registrar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Dialog: Close Shift & Arqueo -->
+<MudDialog @bind-Visible="closeDialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Cierre de Caja y Arqueo</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (currentShift != null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                Efectivo teórico calculado según sistema: <b>$@currentShift.ExpectedCash.ToString("N2")</b>
+            </MudAlert>
+
+            <MudNumericField @bind-Value="closeModel.ActualCash" Label="Efectivo Real en Mano / Contado ($)" Variant="Variant.Outlined" Min="0m" Format="N2" Class="mb-3" />
+
+            var diff = closeModel.ActualCash - currentShift.ExpectedCash;
+            <MudAlert Severity="@(diff == 0 ? Severity.Success : (diff > 0 ? Severity.Info : Severity.Warning))" Class="mb-3">
+                Diferencia de Arqueo: <b>@(diff >= 0 ? "+" : "")$@diff.ToString("N2")</b>
+                @(diff == 0 ? " (Caja Exacta)" : (diff > 0 ? " (Sobrante de caja)" : " (Faltante de caja)"))
+            </MudAlert>
+
+            <MudTextField @bind-Value="closeModel.Notes" Label="Observaciones del Cierre" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => closeDialogVisible = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmCloseShiftAsync" Disabled="savingClose">
+            @(savingClose ? "Cerrando..." : "Confirmar Cierre de Caja")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private CurrentShiftResponse? currentShift;
+    private List<CashShiftDto> shiftHistory = new();
+    private bool loading = true;
+    private bool loadingHistory = false;
+    private bool saving = false;
+    private bool savingMovement = false;
+    private bool savingClose = false;
+
+    private OpenShiftRequest openModel = new();
+    private AddCashMovementRequest movementModel = new();
+    private CloseShiftRequest closeModel = new();
+
+    private bool movementDialogVisible = false;
+    private bool closeDialogVisible = false;
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentShift();
+    }
+
+    private async Task LoadCurrentShift()
+    {
+        loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<CurrentShiftResponse>("api/cash/current");
+            currentShift = res;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al consultar caja: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OpenShiftAsync()
+    {
+        if (openModel.InitialCash < 0)
+        {
+            Snackbar.Add("El fondo inicial no puede ser negativo.", Severity.Warning);
+            return;
+        }
+
+        saving = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/cash/open", openModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Caja abierta correctamente", Severity.Success);
+                openModel = new();
+                await LoadCurrentShift();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void OpenMovementDialog(CashMovementType type)
+    {
+        movementModel = new AddCashMovementRequest { Type = type, Amount = 0, Reason = string.Empty };
+        movementDialogVisible = true;
+    }
+
+    private async Task SaveMovementAsync()
+    {
+        if (movementModel.Amount <= 0)
+        {
+            Snackbar.Add("El monto debe ser mayor a 0", Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(movementModel.Reason))
+        {
+            Snackbar.Add("El motivo es obligatorio", Severity.Warning);
+            return;
+        }
+
+        savingMovement = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/cash/movement", movementModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Movimiento registrado", Severity.Success);
+                movementDialogVisible = false;
+                await LoadCurrentShift();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingMovement = false;
+        }
+    }
+
+    private void OpenCloseShiftDialog()
+    {
+        if (currentShift != null)
+        {
+            closeModel = new CloseShiftRequest { ActualCash = currentShift.ExpectedCash, Notes = string.Empty };
+            closeDialogVisible = true;
+        }
+    }
+
+    private async Task ConfirmCloseShiftAsync()
+    {
+        savingClose = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/cash/close", closeModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Caja cerrada exitosamente con arqueo.", Severity.Success);
+                closeDialogVisible = false;
+                await LoadCurrentShift();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al cerrar caja: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingClose = false;
+        }
+    }
+
+    private async Task LoadHistory()
+    {
+        loadingHistory = true;
+        try
+        {
+            var history = await Http.GetFromJsonAsync<List<CashShiftDto>>("api/cash/history");
+            shiftHistory = history ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar historial: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loadingHistory = false;
+        }
+    }
+}

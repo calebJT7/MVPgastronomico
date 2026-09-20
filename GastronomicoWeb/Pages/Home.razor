@@ -1,0 +1,510 @@
+@page "/"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@using MudBlazor
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject SaaSStateService SaaSState
+
+<PageTitle>Punto de Venta (POS) - @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")</PageTitle>
+
+<style>
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+        #thermal-receipt-container, #thermal-receipt-container * {
+            visibility: visible !important;
+        }
+        #thermal-receipt-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 78mm !important;
+            margin: 0 !important;
+            padding: 4mm !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 12px !important;
+            color: black !important;
+            background: white !important;
+        }
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
+    <MudGrid>
+        @* COLUMNA IZQUIERDA: PRODUCTOS *@
+        <MudItem xs="12" md="8">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h4" Color="Color.Primary">Menú & Carta</MudText>
+                @if (_lastCreatedOrder != null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Print"
+                               OnClick="@(() => _showReceiptModal = true)">
+                        Ver Último Ticket (#@_lastCreatedOrder.Id)
+                    </MudButton>
+                }
+            </div>
+
+            @* BUSCADOR Y CATEGORÍAS *@
+            <MudPaper Elevation="2" Class="pa-3 mb-4">
+                <MudTextField @bind-Value="searchString" Placeholder="Buscar por producto o categoría..."
+                              Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Margin="Margin.Dense" Immediate="true" Clearable="true" Class="mb-3" />
+
+                <div class="d-flex flex-wrap gap-1">
+                    <MudChip T="int?" Selected="@(_selectedCategoryId == null)"
+                             Color="@(_selectedCategoryId == null ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedCategoryId = null)" Variant="Variant.Filled" Size="Size.Small">
+                        Todos
+                    </MudChip>
+                    @foreach (var cat in categories)
+                    {
+                        <MudChip T="int?" Selected="@(_selectedCategoryId == cat.Id)"
+                                 Color="@(_selectedCategoryId == cat.Id ? Color.Primary : Color.Default)"
+                                 OnClick="@(() => _selectedCategoryId = cat.Id)" Variant="Variant.Filled" Size="Size.Small">
+                            @cat.Name
+                        </MudChip>
+                    }
+                </div>
+            </MudPaper>
+
+            <MudGrid>
+                @if (products == null)
+                {
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="ma-4" />
+                }
+                else if (!FilteredProducts.Any())
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info">No se encontraron productos disponibles con los filtros aplicados.</MudAlert>
+                    </MudItem>
+                }
+                else
+                {
+                    @foreach (var prod in FilteredProducts)
+                    {
+                        <MudItem xs="12" sm="6" lg="4">
+                            <MudCard Elevation="3" Class="h-100 d-flex flex-column justify-space-between">
+                                <MudCardContent Class="pb-1">
+                                    <div class="d-flex justify-space-between align-start mb-1">
+                                        <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@prod.Name</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                            @(prod.Category?.Name ?? "General")
+                                        </MudChip>
+                                    </div>
+                                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
+                                        $@prod.Price.ToString("N2")
+                                    </MudText>
+                                    @if (prod.Stock > 0)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Stock: @prod.Stock</MudText>
+                                    }
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                               StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                               OnClick="@(() => AddToCart(prod))">
+                                        AGREGAR
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                }
+            </MudGrid>
+        </MudItem>
+
+        @* COLUMNA DERECHA: CARRITO *@
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="4" Class="pa-4 rounded-lg">
+                <MudText Typo="Typo.h5" Class="mb-3 font-weight-bold">Comanda Actual</MudText>
+
+                @if (cart.Any())
+                {
+                    <div class="mb-3 d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
+                        @foreach (var item in cart)
+                        {
+                            <MudPaper Elevation="1" Class="pa-2 d-flex align-center justify-space-between">
+                                <div style="flex-grow: 1;">
+                                    <MudText Typo="Typo.body2" Class="font-weight-bold">@item.ProductName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">$@item.UnitPrice.ToString("N2") c/u</MudText>
+                                </div>
+                                <div class="d-flex align-center">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => RestarCantidad(item))" />
+                                    <MudText Typo="Typo.body2" Class="mx-2 font-weight-bold">@item.Quantity</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Success"
+                                                   OnClick="@(() => AddToCartFromList(item))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => RemoveFromCart(item))" Class="ml-1" />
+                                </div>
+                            </MudPaper>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-space-between mb-1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Subtotal:</MudText>
+                        <MudText Typo="Typo.body2"><b>$ @SubtotalCart.ToString("N2")</b></MudText>
+                    </div>
+
+                    @if (orderType == "Delivery")
+                    {
+                        <div class="d-flex justify-space-between mb-1">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Costo Envío:</MudText>
+                            <MudText Typo="Typo.body2"><b>$ @deliveryCost.ToString("N2")</b></MudText>
+                        </div>
+                    }
+
+                    <MudDivider Class="my-2" />
+
+                    <div class="d-flex justify-space-between mb-3">
+                        <MudText Typo="Typo.h6">Total a Cobrar:</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>$ @TotalCart.ToString("N2")</b></MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-3">El carrito está vacío</MudAlert>
+                }
+
+                <MudSelect T="string" @bind-Value="orderType" Label="Modalidad de Pedido" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Class="mb-2" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="string" Value="@("Local")">Mostrador (Para llevar)</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Delivery")">Envío a Domicilio</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Salon")">Comer en Salón (Mesa)</MudSelectItem>
+                </MudSelect>
+
+                @if (orderType == "Salon")
+                {
+                    <MudSelect T="int?" @bind-Value="selectedTableId" Label="Seleccionar Mesa" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Class="mb-2" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var t in tables)
+                        {
+                            <MudSelectItem T="int?" Value="@t.Id">
+                                Mesa @t.Number @(t.Status == "Ocupada" ? "🔴 (Ocupada - Adicionar)" : "🟢 (Libre)")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else if (orderType == "Delivery")
+                {
+                    <MudTextField @bind-Value="deliveryAddress" Label="Dirección de Entrega" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Class="mb-2" />
+
+                    <MudNumericField T="decimal" @bind-Value="deliveryCost" Label="Costo del Envío ($)"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Min="0" Format="N2" />
+                }
+
+                @if (orderType != "Salon")
+                {
+                    <MudSelect T="int?" @bind-Value="selectedCustomerId" Label="Cliente Registrado (Opcional)"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var c in customers)
+                        {
+                            <MudSelectItem T="int?" Value="@c.Id">@c.Name (@c.Phone)</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (!selectedCustomerId.HasValue)
+                    {
+                        <MudTextField @bind-Value="customerName" Label="Nombre de Cliente Ocasional"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                    }
+                }
+
+                <MudSelect T="string" @bind-Value="selectedPayment" Label="Medio de Pago" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="string" Value="@("Efectivo")">Efectivo</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Transferencia")">Transferencia / QR</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Tarjeta")">Tarjeta Débito/Crédito</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Cuenta Corriente")">Cuenta Corriente (Fiado)</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
+                           Disabled="@(isProcessing || !cart.Any() || (orderType != "Salon" && !selectedCustomerId.HasValue && string.IsNullOrWhiteSpace(customerName)))"
+                           OnClick="ConfirmarPedido" StartIcon="@Icons.Material.Filled.CheckCircle">
+                    @(isProcessing ? "PROCESANDO..." : "CONFIRMAR PEDIDO")
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@* MODAL DE TICKET TÉRMICO *@
+<MudDialog @bind-Visible="_showReceiptModal" Options="_receiptDialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Ticket de Venta</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_lastCreatedOrder != null)
+        {
+            <div id="thermal-receipt-container" class="pa-3" style="background-color: white; color: black; font-family: monospace; border: 1px dashed #ccc; border-radius: 4px;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <div style="font-size: 16px; font-weight: bold;">@(SaaSState.CurrentBusiness?.TradeName ?? "SAAS GASTRONOMICO")</div>
+                    @if (!string.IsNullOrWhiteSpace(SaaSState.CurrentBusiness?.TaxId))
+                    {
+                        <div style="font-size: 11px;">CUIT: @SaaSState.CurrentBusiness.TaxId</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(SaaSState.CurrentBusiness?.Address))
+                    {
+                        <div style="font-size: 11px;">@SaaSState.CurrentBusiness.Address</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(SaaSState.CurrentBusiness?.Phone))
+                    {
+                        <div style="font-size: 11px;">Tel: @SaaSState.CurrentBusiness.Phone</div>
+                    }
+                    <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                    <div style="font-size: 13px; font-weight: bold;">PEDIDO #@_lastCreatedOrder.Id</div>
+                    <div style="font-size: 11px;">Fecha: @_lastCreatedOrder.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    <div style="font-size: 11px;">Tipo: @_lastCreatedOrder.OrderType</div>
+                    @if (!string.IsNullOrWhiteSpace(_lastCreatedOrder.ClientName))
+                    {
+                        <div style="font-size: 11px;">Cliente: @_lastCreatedOrder.ClientName</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_lastCreatedOrder.DeliveryAddress))
+                    {
+                        <div style="font-size: 11px;">Dirección: @_lastCreatedOrder.DeliveryAddress</div>
+                    }
+                </div>
+
+                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 1px solid #ddd;">
+                            <th>Cant</th>
+                            <th>Prod</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in _lastCreatedOrder.Items)
+                        {
+                            <tr>
+                                <td style="vertical-align: top;">@it.Quantity</td>
+                                <td style="vertical-align: top;">@it.ProductName</td>
+                                <td style="text-align: right; vertical-align: top;">$@((it.Quantity * it.UnitPrice).ToString("N2"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                    <span>Pago:</span>
+                    <span>@_lastCreatedOrder.PaymentMethod</span>
+                </div>
+                @if (_lastCreatedOrder.DeliveryCost > 0)
+                {
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                        <span>Envío:</span>
+                        <span>$@_lastCreatedOrder.DeliveryCost.ToString("N2")</span>
+                    </div>
+                }
+                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 4px;">
+                    <span>TOTAL:</span>
+                    <span>$@_lastCreatedOrder.Total.ToString("N2")</span>
+                </div>
+
+                <div style="text-align: center; margin-top: 12px; font-size: 11px;">
+                    ¡Muchas gracias por su compra!
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showReceiptModal = false)">Cerrar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReceipt">
+            Imprimir Ticket
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Product>? products;
+    private List<Category> categories = new();
+    private List<CartItem> cart = new();
+    private List<RotiseriaWeb.Models.Customer> customers = new();
+    private List<Table> tables = new();
+
+    private string searchString = "";
+    private int? _selectedCategoryId;
+    private int? selectedCustomerId;
+    private int? selectedTableId;
+    private decimal deliveryCost = 1500;
+
+    private bool isProcessing = false;
+    private string selectedPayment = "Efectivo";
+    private string orderType = "Local";
+    private string deliveryAddress = "";
+    private string customerName = "";
+
+    private Order? _lastCreatedOrder;
+    private bool _showReceiptModal = false;
+    private DialogOptions _receiptDialogOptions = new() { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
+
+    private IEnumerable<Product> FilteredProducts
+    {
+        get
+        {
+            var list = products ?? new List<Product>();
+            if (_selectedCategoryId.HasValue)
+            {
+                list = list.Where(p => p.CategoryId == _selectedCategoryId.Value).ToList();
+            }
+
+            if (string.IsNullOrWhiteSpace(searchString))
+                return list;
+
+            return list.Where(p =>
+                p.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                (p.Category?.Name ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private decimal SubtotalCart => cart.Sum(x => x.Quantity * x.UnitPrice);
+    private decimal TotalCart => SubtotalCart + (orderType == "Delivery" ? deliveryCost : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosAsync();
+    }
+
+    private async Task CargarDatosAsync()
+    {
+        try
+        {
+            var pTask = Http.GetFromJsonAsync<List<Product>>("api/Producto/activos");
+            var cTask = Http.GetFromJsonAsync<List<Category>>("api/Categories");
+            var custTask = Http.GetFromJsonAsync<List<RotiseriaWeb.Models.Customer>>("api/Customer");
+            var tTask = Http.GetFromJsonAsync<List<Table>>($"api/Tables?t={DateTime.Now.Ticks}");
+
+            await Task.WhenAll(pTask, cTask, custTask, tTask);
+
+            products = await pTask ?? new();
+            categories = await cTask ?? new();
+            customers = await custTask ?? new();
+            tables = await tTask ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al conectar con el servidor: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void AddToCart(Product prod)
+    {
+        var item = cart.FirstOrDefault(x => x.ProductId == prod.Id);
+        if (item == null)
+        {
+            cart.Add(new CartItem { ProductId = prod.Id, ProductName = prod.Name, UnitPrice = prod.Price, Quantity = 1 });
+        }
+        else
+        {
+            item.Quantity++;
+        }
+        Snackbar.Add($"{prod.Name} agregado", Severity.Success);
+    }
+
+    private void AddToCartFromList(CartItem item) => item.Quantity++;
+
+    private void RestarCantidad(CartItem item)
+    {
+        if (item.Quantity > 1) item.Quantity--;
+        else cart.Remove(item);
+    }
+
+    private void RemoveFromCart(CartItem item)
+    {
+        cart.Remove(item);
+        Snackbar.Add("Producto quitado", Severity.Info);
+    }
+
+    private async Task ConfirmarPedido()
+    {
+        if (orderType == "Salon" && !selectedTableId.HasValue)
+        {
+            Snackbar.Add("Para Salón, debes seleccionar un número de Mesa.", Severity.Warning);
+            return;
+        }
+
+        if (selectedPayment == "Cuenta Corriente" && !selectedCustomerId.HasValue && orderType != "Salon")
+        {
+            Snackbar.Add("Para vender por Cuenta Corriente, debes seleccionar un cliente registrado.", Severity.Warning);
+            return;
+        }
+
+        if (orderType == "Salon" && selectedTableId.HasValue)
+        {
+            var mesaSeleccionada = tables.FirstOrDefault(t => t.Id == selectedTableId.Value);
+            if (mesaSeleccionada != null && mesaSeleccionada.Status == "Ocupada")
+            {
+                bool confirmado = await JS.InvokeAsync<bool>("confirm", $"¡ATENCIÓN!\nLa Mesa {mesaSeleccionada.Number} ya está OCUPADA.\n\n¿Estás seguro de que querés AGREGAR estos productos a esa misma cuenta?");
+                if (!confirmado) return;
+            }
+        }
+
+        isProcessing = true;
+        try
+        {
+            string finalCustomerName = customerName;
+            if (selectedCustomerId.HasValue)
+            {
+                var cliente = customers.FirstOrDefault(c => c.Id == selectedCustomerId.Value);
+                if (cliente != null) finalCustomerName = cliente.Name;
+            }
+
+            var nuevoPedido = new CreateOrderRequest
+            {
+                CustomerId = selectedCustomerId,
+                ClientName = orderType == "Salon" ? "" : finalCustomerName,
+                TableId = orderType == "Salon" ? selectedTableId : null,
+                Items = cart.Select(x => new CreateOrderItemRequest
+                {
+                    ProductId = x.ProductId,
+                    Quantity = x.Quantity
+                }).ToList(),
+                DeliveryCost = orderType == "Delivery" ? deliveryCost : 0,
+                PaymentMethod = selectedPayment,
+                DeliveryAddress = orderType == "Delivery" ? deliveryAddress : "",
+                OrderType = orderType
+            };
+
+            var response = await Http.PostAsJsonAsync("api/Orders", nuevoPedido);
+            if (response.IsSuccessStatusCode)
+            {
+                _lastCreatedOrder = await response.Content.ReadFromJsonAsync<Order>();
+                Snackbar.Add("¡Pedido registrado exitosamente!", Severity.Success);
+
+                cart.Clear();
+                customerName = "";
+                selectedCustomerId = null;
+                selectedTableId = null;
+                deliveryAddress = "";
+                searchString = "";
+
+                _showReceiptModal = true;
+                await CargarDatosAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task PrintReceipt()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+}

@@ -1,0 +1,301 @@
+@page "/products-admin"
+@attribute [Authorize(Roles = "Owner,Admin,Manager")]
+@using RotiseriaWeb.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Gestión del Menú y Productos</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Administra tus platos, bebidas, precios y stock</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/categories" StartIcon="@Icons.Material.Filled.Category">
+            Gestionar Categorías
+        </MudButton>
+    </div>
+
+    @* Formulario rápido para agregar un producto *@
+    <MudPaper Elevation="3" Class="pa-4 mb-6 rounded-lg">
+        <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Agregar Nuevo Producto</MudText>
+        <MudGrid Class="align-center">
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_newProduct.Name" Label="Nombre (Ej: Empanada de Carne)" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newProduct.Price" Label="Precio ($)" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Min="0m" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect T="int?" @bind-Value="_newProduct.CategoryId" Label="Categoría" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- Sin Categoría --</MudSelectItem>
+                    @foreach (var cat in _categories)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)cat.Id)">@cat.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newProduct.Stock" Label="Stock Inicial" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Min="0" />
+            </MudItem>
+            <MudItem xs="12" sm="1">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="AgregarProducto"
+                           Disabled="@(string.IsNullOrWhiteSpace(_newProduct.Name) || _newProduct.Price <= 0 || _saving)">
+                    +
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* Buscador y filtros *@
+    <MudPaper Elevation="1" Class="pa-3 mb-4 d-flex align-center">
+        <MudTextField @bind-Value="_searchTerm" Placeholder="Buscar por nombre..." Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mr-2" Immediate="false" OnKeyUp="@(async (e) => { if (e.Key == "Enter") await CargarProductos(); })" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CargarProductos">Buscar</MudButton>
+    </MudPaper>
+
+    @* Tabla de productos existentes *@
+    <MudTable Items="@_products" T="Product" Dense="true" Hover="true" Elevation="3" Class="rounded-lg" Loading="@_loading">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Categoría</MudTh>
+            <MudTh>Precio</MudTh>
+            <MudTh>Stock</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align: right">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><b>@context.Name</b></MudTd>
+            <MudTd>
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">
+                    @(context.Category?.Name ?? "General")
+                </MudChip>
+            </MudTd>
+            <MudTd><b>$ @context.Price.ToString("N2")</b></MudTd>
+            <MudTd>@context.Stock</MudTd>
+            <MudTd>
+                <MudSwitch T="bool" Value="@context.IsActive"
+                           ValueChanged="@(async (bool val) => await ToggleEstado(context))" Color="Color.Success"
+                           Label="@(context.IsActive ? "Activo" : "Pausado")" />
+            </MudTd>
+            <MudTd Style="text-align: right">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small"
+                               OnClick="@(() => AbrirEditar(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => EliminarProducto(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No se encontraron productos registrados.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudContainer>
+
+@* --- VENTANA FLOTANTE PARA EDITAR PRODUCTOS --- *@
+<MudDialog @bind-Visible="_isEditDialogOpen" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Editar Producto</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_editingProduct.Name" Label="Nombre" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="_editingProduct.Price" Label="Precio ($)" Required="true" Variant="Variant.Outlined" Class="mb-3" Min="0m" Format="N2" />
+        <MudSelect T="int?" @bind-Value="_editingProduct.CategoryId" Label="Categoría" Variant="Variant.Outlined" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem T="int?" Value="@((int?)null)">-- Sin Categoría --</MudSelectItem>
+            @foreach (var cat in _categories)
+            {
+                <MudSelectItem T="int?" Value="@((int?)cat.Id)">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_editingProduct.Stock" Label="Stock" Variant="Variant.Outlined" Class="mb-3" Min="0" />
+        <MudSwitch @bind-Value="_editingProduct.IsActive" Color="Color.Success" Label="Producto Activo para venta" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarEdicion">Cancelar</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="GuardarEdicion" Disabled="_saving">
+            @(_saving ? "Guardando..." : "Guardar Cambios")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Product> _products = new();
+    private List<Category> _categories = new();
+    private ProductWriteRequest _newProduct = new() { IsActive = true, IsAvailable = true };
+
+    private bool _loading = true;
+    private bool _saving = false;
+    private string _searchTerm = string.Empty;
+
+    // Variables para el modo de edición
+    private bool _isEditDialogOpen = false;
+    private int _editingId = 0;
+    private ProductWriteRequest _editingProduct = new();
+    private DialogOptions _dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(CargarCategorias(), CargarProductos());
+    }
+
+    private async Task CargarCategorias()
+    {
+        try
+        {
+            _categories = await Http.GetFromJsonAsync<List<Category>>("api/Categories") ?? new();
+            if (_newProduct.CategoryId == null && _categories.Count > 0)
+            {
+                _newProduct.CategoryId = _categories[0].Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar categorías: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CargarProductos()
+    {
+        _loading = true;
+        try
+        {
+            var url = string.IsNullOrWhiteSpace(_searchTerm)
+                ? "api/Producto?page=1&pageSize=100"
+                : $"api/Producto?page=1&pageSize=100&q={Uri.EscapeDataString(_searchTerm)}";
+
+            var result = await Http.GetFromJsonAsync<PagedResult<Product>>(url);
+            _products = result?.Items ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar menú: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task AgregarProducto()
+    {
+        _saving = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Producto", _newProduct);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Producto agregado al menú", Severity.Success);
+                _newProduct = new()
+                {
+                    IsActive = true,
+                    IsAvailable = true,
+                    CategoryId = _categories.FirstOrDefault()?.Id
+                };
+                await CargarProductos();
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al agregar producto: {err}", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task ToggleEstado(Product prod)
+    {
+        var targetState = !prod.IsActive;
+        var request = new ProductWriteRequest
+        {
+            Name = prod.Name,
+            Price = prod.Price,
+            CategoryId = prod.CategoryId,
+            Stock = prod.Stock,
+            IsActive = targetState,
+            IsAvailable = prod.IsAvailable
+        };
+
+        var response = await Http.PutAsJsonAsync($"api/Producto/{prod.Id}", request);
+        if (response.IsSuccessStatusCode)
+        {
+            prod.IsActive = targetState;
+            Snackbar.Add(prod.IsActive ? $"{prod.Name} activado" : $"{prod.Name} pausado", Severity.Info);
+        }
+        else
+        {
+            Snackbar.Add("Error al cambiar estado del producto", Severity.Error);
+        }
+    }
+
+    private void AbrirEditar(Product prod)
+    {
+        _editingId = prod.Id;
+        _editingProduct = new ProductWriteRequest
+        {
+            Name = prod.Name,
+            Price = prod.Price,
+            CategoryId = prod.CategoryId,
+            Stock = prod.Stock,
+            IsActive = prod.IsActive,
+            IsAvailable = prod.IsAvailable
+        };
+        _isEditDialogOpen = true;
+    }
+
+    private void CerrarEdicion()
+    {
+        _isEditDialogOpen = false;
+    }
+
+    private async Task GuardarEdicion()
+    {
+        _saving = true;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/Producto/{_editingId}", _editingProduct);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Producto actualizado", Severity.Success);
+                _isEditDialogOpen = false;
+                await CargarProductos();
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al actualizar: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task EliminarProducto(Product prod)
+    {
+        var response = await Http.DeleteAsync($"api/Producto/{prod.Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Producto desactivado", Severity.Success);
+            await CargarProductos();
+        }
+        else
+        {
+            Snackbar.Add("Error al eliminar", Severity.Error);
+        }
+    }
+}

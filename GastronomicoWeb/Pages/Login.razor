@@ -1,0 +1,115 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@inject HttpClient Http
+@inject JwtAuthenticationStateProvider AuthState
+@inject SaaSStateService State
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@using System.Text.Json
+
+<PageTitle>Iniciar Sesión - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 85vh;">
+    <MudPaper Elevation="6" Class="pa-8 rounded-lg w-100" Style="background-color: var(--mud-palette-surface);">
+        <div class="text-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Restaurant" Color="Color.Primary" Style="font-size: 3rem;" />
+            <MudText Typo="Typo.h4" Class="mt-2 font-weight-bold">Gastronómico SaaS</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión integral para locales gastronómicos</MudText>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@errorMessage</MudAlert>
+        }
+
+        <EditForm Model="@model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="model.Email" Label="Correo Electrónico" Variant="Variant.Outlined"
+                          InputType="InputType.Email" Required="true" RequiredError="El email es obligatorio"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" Class="mb-4" />
+
+            <MudTextField @bind-Value="model.Password" Label="Contraseña" Variant="Variant.Outlined"
+                          InputType="@(showPassword ? InputType.Text : InputType.Password)" Required="true"
+                          RequiredError="La contraseña es obligatoria"
+                          Adornment="Adornment.End" AdornmentIcon="@(showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                          OnAdornmentClick="@(() => showPassword = !showPassword)" Class="mb-4" />
+
+            <div class="d-flex justify-space-between align-center mb-6">
+                <MudLink Href="/forgot-password" Typo="Typo.body2" Color="Color.Primary">¿Olvidaste tu contraseña?</MudLink>
+                <MudLink Href="/register" Typo="Typo.body2" Color="Color.Secondary">Crear nuevo negocio</MudLink>
+            </div>
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large" Disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Iniciando sesión...</MudText>
+                }
+                else
+                {
+                    <MudText>Ingresar al Sistema</MudText>
+                }
+            </MudButton>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginRequest model = new();
+    private bool showPassword = false;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private async Task HandleLogin()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Auth/login", model);
+            if (response.IsSuccessStatusCode)
+            {
+                var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                if (auth != null)
+                {
+                    var businessJson = JsonSerializer.Serialize(auth);
+                    await AuthState.MarkUserAsAuthenticatedAsync(auth.Token, businessJson);
+                    State.SetAuthInfo(auth);
+                    Snackbar.Add($"¡Bienvenido de vuelta!", Severity.Success);
+
+                    if (!auth.OnboardingCompleted)
+                    {
+                        Nav.NavigateTo("/onboarding");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(ReturnUrl))
+                    {
+                        Nav.NavigateTo(ReturnUrl);
+                    }
+                    else
+                    {
+                        Nav.NavigateTo("/");
+                    }
+                }
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrWhiteSpace(err) ? "Usuario o contraseña inválidos." : err;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error de conexión con el servidor: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

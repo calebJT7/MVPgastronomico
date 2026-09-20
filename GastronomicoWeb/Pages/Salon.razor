@@ -1,0 +1,410 @@
+@page "/salon"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject ILocalStorageService LocalStorage
+@inject SaaSStateService SaaSState
+@implements IAsyncDisposable
+
+<PageTitle>Salón y Mesas - SaaS Gastronómico</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Mapa del Salón</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Gestión de mesas en tiempo real. @(IsConnected ? "🟢 Conectado" : "🟡 Conectando...")
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <AuthorizeView Roles="Owner,Admin,Manager">
+                <Authorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="CrearNuevaMesaAsync">
+                        Nueva Mesa
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="CargarMesas">
+                Actualizar
+            </MudButton>
+        </div>
+    </div>
+
+    @if (mesas == null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (!mesas.Any())
+    {
+        <MudPaper Elevation="2" Class="pa-8 text-center">
+            <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+            <MudText Typo="Typo.h6">No hay mesas configuradas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Agrega las mesas de tu salón para comenzar a tomar comandas.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CrearNuevaMesaAsync">
+                Crear Mesa 1
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var mesa in mesas)
+            {
+                bool isOcupada = mesa.Status == "Ocupada";
+                string bgColor = isOcupada ? "#b71c1c" : "#1b5e20";
+
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudPaper Elevation="4" Class="pa-4 text-center"
+                              Style="@($"background-color: {bgColor}; color: white; border-radius: 12px;")">
+                        <div class="d-flex justify-space-between align-center mb-1">
+                            <MudText Typo="Typo.caption" Style="opacity: 0.8;">MESA</MudText>
+                            <AuthorizeView Roles="Owner,Admin">
+                                <Authorized>
+                                    @if (!isOcupada)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small"
+                                                       Style="color: rgba(255,255,255,0.7);"
+                                                       OnClick="@(() => EliminarMesa(mesa.Id))" />
+                                    }
+                                </Authorized>
+                            </AuthorizeView>
+                        </div>
+                        <MudText Typo="Typo.h2"><b>@mesa.Number</b></MudText>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(isOcupada ? "background-color: rgba(0,0,0,0.3); color: white;" : "background-color: rgba(255,255,255,0.2); color: white;")">
+                            @(isOcupada ? "OCUPADA" : "LIBRE")
+                        </MudChip>
+
+                        <MudDivider Class="my-3" Style="background-color: rgba(255,255,255,0.2);" />
+
+                        @if (isOcupada)
+                        {
+                            <MudButton Variant="Variant.Filled" Style="background-color: white; color: #b71c1c; font-weight: bold;" Size="Size.Medium"
+                                       OnClick="@(() => VerCuenta(mesa.Id))" Class="mb-2" FullWidth="true">
+                                VER / COBRAR
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Style="color: white; border-color: white;" Size="Size.Small"
+                                       OnClick="IrACaja" FullWidth="true">
+                                + Adicionar Pedido
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Outlined" Style="color: white; border-color: white;" Size="Size.Medium"
+                                       OnClick="IrACaja" FullWidth="true">
+                                Abrir Mesa
+                            </MudButton>
+                        }
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@* MODAL PARA VER CUENTA Y COBRAR *@
+<MudDialog @bind-Visible="dialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h5" Color="Color.Primary"><b>Cuenta Mesa @mesaSeleccionada?.Number</b></MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (cuentaActual != null)
+        {
+            <MudList T="string" Dense="true" Class="mb-2">
+                @foreach (var item in cuentaActual.Items)
+                {
+                    <MudListItem T="string">
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText Typo="Typo.body1">@item.Quantity x @item.ProductName</MudText>
+                            <MudText Typo="Typo.body1"><b>$@((item.UnitPrice * item.Quantity).ToString("N2"))</b></MudText>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+            <MudDivider Class="my-2" />
+            <div class="d-flex justify-space-between mt-2">
+                <MudText Typo="Typo.h6">Subtotal:</MudText>
+                <MudText Typo="Typo.h6"><b>$ @cuentaActual.Total.ToString("N2")</b></MudText>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <MudSelect T="string" @bind-Value="medioPago" Label="Forma de Pago" Variant="Variant.Outlined" Dense="true">
+                    <MudSelectItem Value="@("Efectivo")">Efectivo</MudSelectItem>
+                    <MudSelectItem Value="@("Tarjeta Débito/Crédito")">Tarjeta Débito/Crédito</MudSelectItem>
+                    <MudSelectItem Value="@("Transferencia / MP")">Transferencia / MP</MudSelectItem>
+                </MudSelect>
+                <MudNumericField @bind-Value="propinaMonto" Label="Propina ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Format="N2" />
+            </div>
+
+            @if (propinaMonto > 0)
+            {
+                <div class="d-flex justify-space-between mt-2">
+                    <MudText Typo="Typo.subtitle1">Total con Propina:</MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Success"><b>$ @((cuentaActual.Total + propinaMonto).ToString("N2"))</b></MudText>
+                </div>
+            }
+
+            <MudDivider Class="my-3" />
+
+            <!-- Dividir Cuenta -->
+            <div class="d-flex justify-space-between align-center mb-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.CallSplit" OnClick="ToggleSplitBill">
+                    @(showSplitBill ? "Ocultar División" : "Dividir Cuenta")
+                </MudButton>
+            </div>
+
+            @if (showSplitBill)
+            {
+                <div class="pa-3 rounded mb-2" style="background: rgba(0,0,0,0.03); border: 1px solid #ddd;">
+                    @if (!SaaSState.HasFeature(FeatureCodes.SplitBills))
+                    {
+                        <div class="text-center py-2">
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">PLAN PREMIUM</MudChip>
+                            <MudText Typo="Typo.body2" Class="my-1">La división de cuentas y propinas por persona está disponible en el Plan Premium.</MudText>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Nav.NavigateTo("/subscription"))">Mejorar Plan</MudButton>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-2 align-center">
+                            <MudNumericField @bind-Value="splitParts" Label="Personas" Min="2" Max="50" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                            <MudNumericField @bind-Value="splitTipPercent" Label="% Propina" Min="0m" Max="50m" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="CalcularSplitBill">Calcular</MudButton>
+                        </div>
+                        @if (splitResult != null)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
+                                <b>@splitResult.Parts personas</b> pagan: <b>$@splitResult.PerPerson.ToString("N2") cada una</b>
+                                <br/><small>(Total c/propina: $@splitResult.TotalWithTip.ToString("N2"))</small>
+                            </MudAlert>
+                        }
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarDialogo">Volver</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="CobrarMesa" Size="Size.Large" Disabled="_cobrando">
+            @(_cobrando ? "Procesando..." : "COBRAR Y LIBERAR")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Table>? mesas;
+    private bool dialogVisible;
+    private bool _cobrando = false;
+    private Table? mesaSeleccionada;
+    private Order? cuentaActual;
+    private string medioPago = "Efectivo";
+    private decimal propinaMonto = 0m;
+    private bool showSplitBill = false;
+    private int splitParts = 2;
+    private decimal splitTipPercent = 10m;
+    private SplitBillResultDto? splitResult;
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+    private HubConnection? _hubConnection;
+
+    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarMesas();
+        await SetupSignalRAsync();
+    }
+
+    private async Task SetupSignalRAsync()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Nav.ToAbsoluteUri("/hubs/orders"), options =>
+                {
+                    options.AccessTokenProvider = async () =>
+                    {
+                        return await LocalStorage.GetItemAsync(JwtAuthenticationStateProvider.TokenKey);
+                    };
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<object>("TableUpdated", async (payload) =>
+            {
+                await CargarMesas();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            _hubConnection.On<object>("OrderUpdated", async (payload) =>
+            {
+                await CargarMesas();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR Salon error: {ex.Message}");
+        }
+    }
+
+    private async Task CargarMesas()
+    {
+        try
+        {
+            mesas = await Http.GetFromJsonAsync<List<Table>>($"api/Tables?t={DateTime.UtcNow.Ticks}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar mesas: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void IrACaja()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    private async Task CrearNuevaMesaAsync()
+    {
+        int nextNumber = (mesas?.Any() == true) ? mesas.Max(m => m.Number) + 1 : 1;
+        var newTable = new Table { Number = nextNumber, Status = "Libre" };
+        var res = await Http.PostAsJsonAsync("api/Tables", newTable);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add($"Mesa {nextNumber} creada con éxito.", Severity.Success);
+            await CargarMesas();
+        }
+        else
+        {
+            var err = await res.Content.ReadAsStringAsync();
+            Snackbar.Add($"Error al crear mesa: {err}", Severity.Warning);
+        }
+    }
+
+    private async Task EliminarMesa(int id)
+    {
+        var res = await Http.DeleteAsync($"api/Tables/{id}");
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Mesa eliminada", Severity.Info);
+            await CargarMesas();
+        }
+        else
+        {
+            var err = await res.Content.ReadAsStringAsync();
+            Snackbar.Add($"Error: {err}", Severity.Warning);
+        }
+    }
+
+    private async Task VerCuenta(int tableId)
+    {
+        mesaSeleccionada = mesas?.FirstOrDefault(m => m.Id == tableId);
+        dialogVisible = true;
+        cuentaActual = null;
+        medioPago = "Efectivo";
+        propinaMonto = 0m;
+        showSplitBill = false;
+        splitResult = null;
+
+        try
+        {
+            cuentaActual = await Http.GetFromJsonAsync<Order>($"api/Tables/{tableId}/order");
+        }
+        catch
+        {
+            Snackbar.Add("Error al cargar la cuenta", Severity.Error);
+            dialogVisible = false;
+        }
+    }
+
+    private void CerrarDialogo() => dialogVisible = false;
+
+    private void ToggleSplitBill()
+    {
+        showSplitBill = !showSplitBill;
+        if (showSplitBill && splitResult == null)
+        {
+            _ = CalcularSplitBill();
+        }
+    }
+
+    private async Task CalcularSplitBill()
+    {
+        if (mesaSeleccionada == null) return;
+        try
+        {
+            var req = new SplitBillRequest
+            {
+                Parts = splitParts,
+                TipPercentage = splitTipPercent
+            };
+            var res = await Http.PostAsJsonAsync($"api/Tables/{mesaSeleccionada.Id}/split-bill", req);
+            if (res.IsSuccessStatusCode)
+            {
+                splitResult = await res.Content.ReadFromJsonAsync<SplitBillResultDto>();
+                if (splitResult != null && splitResult.Tip > 0)
+                {
+                    propinaMonto = splitResult.Tip;
+                }
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {err}", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CobrarMesa()
+    {
+        if (mesaSeleccionada == null) return;
+        _cobrando = true;
+        try
+        {
+            var req = new { PaymentMethod = medioPago, TipAmount = propinaMonto };
+            var response = await Http.PostAsJsonAsync($"api/Tables/{mesaSeleccionada.Id}/close", req);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"¡Mesa {mesaSeleccionada.Number} cobrada y liberada!", Severity.Success);
+                dialogVisible = false;
+                await CargarMesas();
+            }
+            else
+            {
+                Snackbar.Add("Error al cobrar la mesa", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _cobrando = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

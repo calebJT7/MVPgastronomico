@@ -1,0 +1,126 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using RotiseriaWeb.Services
+@inject SaaSStateService SaaSState
+@implements IDisposable
+
+<MudNavMenu>
+    <div class="px-4 py-3 d-flex justify-space-between align-center">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Color="Color.Primary" Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold" Style="line-height: 1.2;">
+                    @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Gestión Gastronómica</MudText>
+            </div>
+        </div>
+        <div>
+            @if (SaaSState.IsPremium)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WorkspacePremium">
+                    PREMIUM
+                </MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">
+                    BÁSICO
+                </MudChip>
+            }
+        </div>
+    </div>
+    <MudDivider Class="mb-2" />
+
+    <MudNavGroup Title="Punto de Venta" Icon="@Icons.Material.Filled.PointOfSale" Expanded="true">
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ShoppingCart">
+            Tomar Pedido (POS)
+        </MudNavLink>
+        <MudNavLink Href="/caja" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Savings">
+            Caja y Arqueo
+        </MudNavLink>
+        <MudNavLink Href="/cocina" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AccessTime">
+            Monitor de Cocina (KDS)
+        </MudNavLink>
+        @if (SaaSState.CurrentBusiness?.TablesEnabled ?? true)
+        {
+            <MudNavLink Href="/salon" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.TableRestaurant">
+                Salón / Mesas
+            </MudNavLink>
+            <MudNavLink Href="/reservas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EventSeat">
+                Reservas de Mesas
+            </MudNavLink>
+        }
+        <MudNavLink Href="/orders-history" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ReceiptLong">
+            Historial de Ventas
+        </MudNavLink>
+        <MudNavLink Href="/customers" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">
+            Clientes y Fiados
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Carta y Recetas" Icon="@Icons.Material.Filled.MenuBook" Expanded="true">
+        <MudNavLink Href="/products-admin" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Fastfood">
+            Productos y Precios
+        </MudNavLink>
+        <MudNavLink Href="/categories" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Category">
+            Categorías
+        </MudNavLink>
+        <MudNavLink Href="/recetas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AutoStories">
+            Recetas y Costeo (CMV)
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Stock e Insumos" Icon="@Icons.Material.Filled.Inventory" Expanded="true">
+        <MudNavLink Href="/insumos" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Warehouse">
+            Insumos, Compras y Mermas
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Gastos y Consumos" Icon="@Icons.Material.Filled.AccountBalanceWallet">
+        <MudNavLink Href="/expenses" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MoneyOff">
+            Gastos Operativos
+        </MudNavLink>
+        <MudNavLink Href="/consumptions" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Badge">
+            Consumo Empleados
+        </MudNavLink>
+    </MudNavGroup>
+
+    <AuthorizeView Roles="Owner,Admin">
+        <Authorized>
+            <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
+                <MudNavLink Href="/dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Analytics">
+                    Finanzas y Resumen
+                </MudNavLink>
+                <MudNavLink Href="/reportes-avanzados" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.TrendingUp">
+                    Reportes Avanzados
+                </MudNavLink>
+                <MudNavLink Href="/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ManageAccounts">
+                    Equipo y Usuarios
+                </MudNavLink>
+                <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Store">
+                    Configuración Local
+                </MudNavLink>
+                <MudNavLink Href="/subscription" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.CardMembership">
+                    Planes y Suscripción
+                </MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudDivider Class="my-2" />
+    <MudNavLink Href="/legal" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Gavel">
+        Términos Legales
+    </MudNavLink>
+</MudNavMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SaaSState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SaaSState.OnChange -= StateHasChanged;
+    }
+}

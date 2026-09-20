@@ -1,0 +1,149 @@
+@page "/categories"
+@attribute [Authorize(Roles = "Owner,Admin,Manager")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Categorías de Menú - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Categorías del Menú</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Organiza tus platos, bebidas y productos</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            Nueva Categoría
+        </MudButton>
+    </div>
+
+    <MudTable Items="@categories" Hover="true" Elevation="4" Loading="@loading">
+        <HeaderContent>
+            <MudTh>Orden</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Control de Stock</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Orden">@context.SortOrder</MudTd>
+            <MudTd DataLabel="Nombre"><b>@context.Name</b></MudTd>
+            <MudTd DataLabel="Stock">
+                @if (context.TracksStock)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Descuenta Unidades</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Sin Control</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Activa" : "Inactiva")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+<MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(isEditing ? "Editar Categoría" : "Nueva Categoría")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="editingCategory.Name" Label="Nombre de Categoría" Required="true" Class="mb-3" />
+        <MudNumericField @bind-Value="editingCategory.SortOrder" Label="Orden de Visualización" Min="1" Class="mb-3" />
+        <MudCheckBox @bind-Value="editingCategory.TracksStock" Label="Controla stock de productos (ej: Bebidas empaquetadas)" Color="Color.Primary" T="bool" Class="mb-2" />
+        <MudCheckBox @bind-Value="editingCategory.IsActive" Label="Categoría Activa" Color="Color.Success" T="bool" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveCategory" Disabled="@string.IsNullOrWhiteSpace(editingCategory.Name)">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Category> categories = new();
+    private bool loading = true;
+    private bool dialogOpen = false;
+    private bool isEditing = false;
+    private Category editingCategory = new();
+    private DialogOptions dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<Category>>("api/Categories");
+            categories = res ?? new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        isEditing = false;
+        editingCategory = new Category { SortOrder = categories.Count + 1, IsActive = true };
+        dialogOpen = true;
+    }
+
+    private void OpenEditDialog(Category cat)
+    {
+        isEditing = true;
+        editingCategory = new Category
+        {
+            Id = cat.Id,
+            Name = cat.Name,
+            SortOrder = cat.SortOrder,
+            TracksStock = cat.TracksStock,
+            IsActive = cat.IsActive
+        };
+        dialogOpen = true;
+    }
+
+    private async Task SaveCategory()
+    {
+        if (isEditing)
+        {
+            var res = await Http.PutAsJsonAsync($"api/Categories/{editingCategory.Id}", editingCategory);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Categoría actualizada", Severity.Success);
+                dialogOpen = false;
+                await LoadCategories();
+            }
+            else
+            {
+                Snackbar.Add("Error al actualizar categoría", Severity.Error);
+            }
+        }
+        else
+        {
+            var res = await Http.PostAsJsonAsync("api/Categories", editingCategory);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Categoría creada con éxito", Severity.Success);
+                dialogOpen = false;
+                await LoadCategories();
+            }
+            else
+            {
+                Snackbar.Add("Error al crear categoría", Severity.Error);
+            }
+        }
+    }
+}

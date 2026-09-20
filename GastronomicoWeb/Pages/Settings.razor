@@ -1,0 +1,244 @@
+@page "/settings"
+@attribute [Authorize(Roles = "Owner,Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject SaaSStateService SaaSState
+
+<PageTitle>Configuración del Negocio - SaaS Gastronómico</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-4">
+    <MudText Typo="Typo.h4" Class="mb-1">Configuración del Negocio</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Personaliza los datos comerciales, zona horaria y preferencias del local.
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (_business != null)
+    {
+        <MudPaper Class="pa-6" Elevation="2">
+            <EditForm Model="_model" OnValidSubmit="SaveSettings">
+                <DataAnnotationsValidator />
+
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Datos Comerciales</MudText>
+                        <MudDivider Class="my-2" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.TradeName" Label="Nombre Comercial / Fantasía *"
+                                      Variant="Variant.Outlined" Required="true" RequiredError="El nombre comercial es obligatorio" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.LegalName" Label="Razón Social (Opcional)"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.TaxId" Label="Identificación Fiscal (CUIT / RUT / RFC)"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.Phone" Label="Teléfono / WhatsApp"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.Email" Label="Email de Contacto del Local"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.Address" Label="Dirección del Establecimiento"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.LogoUrl" Label="URL del Logo (Opcional)"
+                                      Variant="Variant.Outlined" Placeholder="https://ejemplo.com/logo.png" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="mt-3">
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Operación y Región</MudText>
+                        <MudDivider Class="my-2" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="BusinessType" Label="Tipo de Establecimiento Gastronómico" @bind-Value="_model.BusinessType"
+                                   Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@(BusinessType.General)">General / Polivalente</MudSelectItem>
+                            <MudSelectItem Value="@(BusinessType.Rotiseria)">Rotisería / Casa de Comidas</MudSelectItem>
+                            <MudSelectItem Value="@(BusinessType.Cafeteria)">Cafetería / Pastelería</MudSelectItem>
+                            <MudSelectItem Value="@(BusinessType.Bar)">Bar / Cervecería / Coctelería</MudSelectItem>
+                            <MudSelectItem Value="@(BusinessType.Restaurante)">Restaurante de Salón</MudSelectItem>
+                            <MudSelectItem Value="@(BusinessType.LocalComida)">Local de Comida Rápida / Pizzería</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string" Label="Zona Horaria del Negocio" @bind-Value="_model.TimeZoneId"
+                                   Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@("America/Argentina/Buenos_Aires")">Argentina (GMT-3)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Santiago")">Chile (Santiago)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Montevideo")">Uruguay (Montevideo)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Bogota")">Colombia (Bogotá GMT-5)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Lima")">Perú (Lima GMT-5)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Mexico_City")">México (CDMX)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Sao_Paulo")">Brasil (São Paulo)</MudSelectItem>
+                            <MudSelectItem Value="@("America/Caracas")">Venezuela (Caracas)</MudSelectItem>
+                            <MudSelectItem Value="@("UTC")">UTC (Universal)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mt-2 font-weight-bold">
+                            Módulos Activos en el Establecimiento
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Adaptá la aplicación según las operaciones reales de tu negocio (ej. una rotisería puede no requerir salón o reservas).
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.TablesEnabled" Color="Color.Success">
+                            Salón y Mesas
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.DeliveryEnabled" Color="Color.Success">
+                            Delivery / Envíos
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.TakeawayEnabled" Color="Color.Success">
+                            Mostrador / Takeaway
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.KitchenEnabled" Color="Color.Success">
+                            Comandas en Cocina
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.ReservationsEnabled" Color="Color.Success">
+                            Libro de Reservas
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.CashControlEnabled" Color="Color.Success">
+                            Control de Caja
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSwitch @bind-Value="_model.InventoryEnabled" Color="Color.Success">
+                            Control de Insumos
+                        </MudSwitch>
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex justify-end mt-4">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                                   Size="Size.Large" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
+                            @(_saving ? "Guardando..." : "Guardar Cambios")
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private bool _saving = false;
+    private Business? _business;
+    private BusinessUpdateRequest _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBusinessAsync();
+    }
+
+    private async Task LoadBusinessAsync()
+    {
+        _loading = true;
+        try
+        {
+            _business = await Http.GetFromJsonAsync<Business>("api/Business");
+            if (_business != null)
+            {
+                _model = new BusinessUpdateRequest
+                {
+                    TradeName = _business.TradeName,
+                    LegalName = _business.LegalName,
+                    TaxId = _business.TaxId,
+                    Address = _business.Address,
+                    Phone = _business.Phone,
+                    Email = _business.Email,
+                    LogoUrl = _business.LogoUrl,
+                    OpeningHoursJson = _business.OpeningHoursJson,
+                    PreferencesJson = _business.PreferencesJson,
+                    BusinessType = _business.BusinessType,
+                    TablesEnabled = _business.TablesEnabled,
+                    DeliveryEnabled = _business.DeliveryEnabled,
+                    TakeawayEnabled = _business.TakeawayEnabled,
+                    KitchenEnabled = _business.KitchenEnabled,
+                    ReservationsEnabled = _business.ReservationsEnabled,
+                    CashControlEnabled = _business.CashControlEnabled,
+                    InventoryEnabled = _business.InventoryEnabled,
+                    TimeZoneId = string.IsNullOrWhiteSpace(_business.TimeZoneId) ? "America/Argentina/Buenos_Aires" : _business.TimeZoneId
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar configuración: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        _saving = true;
+        try
+        {
+            var res = await Http.PutAsJsonAsync("api/Business", _model);
+            if (res.IsSuccessStatusCode)
+            {
+                var updated = await res.Content.ReadFromJsonAsync<Business>();
+                if (updated != null)
+                {
+                    _business = updated;
+                    SaaSState.UpdateBusinessInfo(updated);
+                }
+                Snackbar.Add("Configuración guardada exitosamente.", Severity.Success);
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al guardar: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

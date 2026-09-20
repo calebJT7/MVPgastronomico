@@ -1,0 +1,224 @@
+@page "/cocina"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Timers
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+@inject SaaSStateService SaaSState
+@implements IAsyncDisposable
+
+<PageTitle>Monitor de Cocina - SaaS Gastronómico</PageTitle>
+
+<FeatureGate Feature="@FeatureCodes.Kds"
+             FeatureName="Monitor de Cocina (KDS)"
+             Description="El monitor KDS en tiempo real con SignalR para cocina, comandas y alertas de demora está disponible exclusivamente en el Plan Premium.">
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Color="Color.Primary">Monitor de Cocina (KDS)</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Comandas en tiempo real. @(IsConnected ? "🟢 En línea (SignalR Activo)" : "🟡 Conectando...")
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadOrders" StartIcon="@Icons.Material.Filled.Refresh">
+        Actualizar
+    </MudButton>
+</div>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+}
+else if (!pendingOrders.Any())
+{
+    <MudPaper Class="pa-8 text-center" Elevation="2">
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Color="Color.Success" Style="font-size: 4rem;" />
+        <MudText Typo="Typo.h5" Class="mt-3">¡Cocina al día!</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">No hay pedidos pendientes en este momento.</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudGrid>
+        @foreach (var order in pendingOrders)
+        {
+            var minutosTranscurridos = (int)(DateTime.UtcNow - order.Date).TotalMinutes;
+            var showAlert30 = minutosTranscurridos >= 30 && minutosTranscurridos < 45 && !order.Alert30Dismissed;
+            var showAlert45 = minutosTranscurridos >= 45;
+
+            var cardColor = "background-color: var(--mud-palette-surface);";
+            if (showAlert45)
+                cardColor = "background-color: #b71c1c; color: white; border: 2px solid #ff5252;";
+            else if (showAlert30)
+                cardColor = "background-color: #e65100; color: white; border: 2px solid #ffb74d;";
+
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudCard Elevation="4" Style="@cardColor" Class="d-flex flex-column justify-space-between h-100">
+                    <MudCardContent>
+                        <div class="d-flex justify-space-between align-start">
+                            <div>
+                                <MudText Typo="Typo.h5" Style="font-weight: bold; color: #ffeb3b; text-transform: uppercase;">
+                                    @(string.IsNullOrWhiteSpace(order.ClientName) ? $"Pedido #{order.Id}" : order.ClientName)
+                                </MudText>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mt-1">
+                                    @order.OrderType
+                                </MudChip>
+                            </div>
+                            <MudChip T="string" Size="Size.Small" Color="@(minutosTranscurridos > 30 ? Color.Error : Color.Warning)">
+                                Hace @minutosTranscurridos min
+                            </MudChip>
+                        </div>
+
+                        <MudDivider Class="my-2" Style="background-color: rgba(255,255,255,0.2);" />
+
+                        <MudList T="string" Dense="true">
+                            @foreach (var item in order.Items)
+                            {
+                                <MudListItem T="string">
+                                    <MudText Typo="Typo.body1">
+                                        <b>@item.Quantity x @item.ProductName</b>
+                                    </MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudCardContent>
+
+                    <MudCardActions Class="d-flex flex-column align-stretch gap-2 pa-3">
+                        @if (showAlert45)
+                        {
+                            <MudText Style="color: #ffcccc; font-weight: bold; text-align: center;" Typo="Typo.caption">
+                                ¡DEMORA CRÍTICA (+45 min)!
+                            </MudText>
+                        }
+
+                        <div class="d-flex justify-space-between gap-2 w-100">
+                            <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="@(() => CancelarPedido(order.Id))">
+                                Cancelar
+                            </MudButton>
+
+                            <MudButton Color="Color.Success" Variant="Variant.Filled" Size="Size.Small"
+                                       OnClick="@(() => MarcarDespachado(order.Id))" StartIcon="@Icons.Material.Filled.Done">
+                                Despachar
+                            </MudButton>
+                        </div>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+</FeatureGate>
+
+@code {
+    private List<Order> pendingOrders = new();
+    private bool loading = true;
+    private Timer? _timer;
+    private HubConnection? _hubConnection;
+
+    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SaaSState.HasFeature(FeatureCodes.Kds))
+        {
+            loading = false;
+            return;
+        }
+
+        await LoadOrders();
+        await SetupSignalRAsync();
+
+        _timer = new Timer(60000);
+        _timer.Elapsed += async (sender, e) => { await InvokeAsync(StateHasChanged); };
+        _timer.Start();
+    }
+
+    private async Task SetupSignalRAsync()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/hubs/orders"), options =>
+                {
+                    options.AccessTokenProvider = async () =>
+                    {
+                        return await LocalStorage.GetItemAsync(JwtAuthenticationStateProvider.TokenKey);
+                    };
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<object>("OrderUpdated", async (payload) =>
+            {
+                await LoadOrders();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR error: {ex.Message}");
+        }
+    }
+
+    private async Task LoadOrders()
+    {
+        loading = true;
+        try
+        {
+            var orders = await Http.GetFromJsonAsync<List<Order>>("api/Orders/today");
+            pendingOrders = orders?.Where(o => o.Status == "Pendiente").OrderBy(o => o.Date).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al actualizar comandas: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task MarcarDespachado(int orderId)
+    {
+        var res = await Http.PatchAsync($"api/Orders/dispatch/{orderId}", null);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Pedido despachado", Severity.Success);
+            await LoadOrders();
+        }
+        else
+        {
+            Snackbar.Add("Error al despachar pedido", Severity.Error);
+        }
+    }
+
+    private async Task CancelarPedido(int orderId)
+    {
+        var res = await Http.PatchAsync($"api/Orders/cancel/{orderId}", null);
+        if (res.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Pedido cancelado", Severity.Info);
+            await LoadOrders();
+        }
+        else
+        {
+            Snackbar.Add("Error al cancelar", Severity.Error);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

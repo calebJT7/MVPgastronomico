@@ -1,0 +1,119 @@
+@page "/register"
+@attribute [AllowAnonymous]
+@inject HttpClient Http
+@inject JwtAuthenticationStateProvider AuthState
+@inject SaaSStateService State
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@using System.Text.Json
+
+<PageTitle>Registrar Negocio - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center my-8">
+    <MudPaper Elevation="6" Class="pa-8 rounded-lg w-100" Style="background-color: var(--mud-palette-surface);">
+        <div class="text-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Storefront" Color="Color.Primary" Style="font-size: 3rem;" />
+            <MudText Typo="Typo.h4" Class="mt-2 font-weight-bold">Crear Cuenta de Negocio</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Comenzá tu prueba gratuita de 14 días con acceso total</MudText>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@errorMessage</MudAlert>
+        }
+
+        <EditForm Model="@model" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="model.BusinessName" Label="Nombre del Negocio (Ej: Pizzería Napoli)"
+                          Variant="Variant.Outlined" Required="true" RequiredError="El nombre del negocio es obligatorio"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Store" Class="mb-3" />
+
+            <MudTextField @bind-Value="model.FullName" Label="Tu Nombre Completo" Variant="Variant.Outlined"
+                          Required="true" RequiredError="Tu nombre es obligatorio"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" Class="mb-3" />
+
+            <MudTextField @bind-Value="model.Email" Label="Correo Electrónico" Variant="Variant.Outlined"
+                          InputType="InputType.Email" Required="true" RequiredError="El email es obligatorio"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" Class="mb-3" />
+
+            <MudTextField @bind-Value="model.Password" Label="Contraseña (mínimo 8 caracteres)" Variant="Variant.Outlined"
+                          InputType="@(showPassword ? InputType.Text : InputType.Password)" Required="true"
+                          RequiredError="La contraseña es obligatoria"
+                          Adornment="Adornment.End" AdornmentIcon="@(showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                          OnAdornmentClick="@(() => showPassword = !showPassword)" Class="mb-4" />
+
+            <MudCheckBox @bind-Value="model.AcceptLegal" Color="Color.Primary" Class="mb-4" T="bool">
+                Acepto los <MudLink Href="/legal" Target="_blank" Color="Color.Primary">Términos y Condiciones del Servicio</MudLink> y la Política de Privacidad.
+            </MudCheckBox>
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large" Disabled="@(isSubmitting || !model.AcceptLegal)">
+                @if (isSubmitting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Creando negocio y configurando entorno...</MudText>
+                }
+                else
+                {
+                    <MudText>Registrar y Comenzar Gratis</MudText>
+                }
+            </MudButton>
+
+            <div class="text-center mt-6">
+                <MudText Typo="Typo.body2">
+                    ¿Ya tenés una cuenta? <MudLink Href="/login" Color="Color.Primary">Iniciá sesión aquí</MudLink>
+                </MudText>
+            </div>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private RegisterRequest model = new();
+    private bool showPassword = false;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        if (model.Password.Length < 8)
+        {
+            errorMessage = "La contraseña debe tener al menos 8 caracteres.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Auth/register", model);
+            if (response.IsSuccessStatusCode)
+            {
+                var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                if (auth != null)
+                {
+                    var businessJson = JsonSerializer.Serialize(auth);
+                    await AuthState.MarkUserAsAuthenticatedAsync(auth.Token, businessJson);
+                    State.SetAuthInfo(auth);
+                    Snackbar.Add("¡Negocio registrado con éxito! Bienvenido al sistema.", Severity.Success);
+                    Nav.NavigateTo("/onboarding");
+                }
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrWhiteSpace(err) ? "No se pudo registrar la cuenta." : err;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error de conexión con el servidor: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

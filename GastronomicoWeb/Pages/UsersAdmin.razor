@@ -1,0 +1,183 @@
+@page "/users"
+@attribute [Authorize(Roles = "Owner,Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Personal y Usuarios - Gastronómico SaaS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Personal del Negocio</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Gestiona los accesos de administradores, encargados y mozos</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateDialog">
+            Nuevo Empleado
+        </MudButton>
+    </div>
+
+    <MudTable Items="@users" Hover="true" Elevation="4" Loading="@loading">
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Rol</MudTh>
+            <MudTh>Último Acceso</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre"><b>@context.FullName</b></MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Rol">
+                <MudChip T="string" Color="@GetRoleColor(context.Role)" Size="Size.Small">@context.Role</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Último Acceso">
+                @(context.LastLoginAtUtc.HasValue ? context.LastLoginAtUtc.Value.ToString("dd/MM/yyyy HH:mm") : "Nunca")
+            </MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Activo" : "Bloqueado")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                @if (context.Role != "Owner")
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+<MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(isEditing ? "Modificar Empleado" : "Dar de Alta Empleado")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!isEditing)
+        {
+            <MudTextField @bind-Value="createModel.Email" Label="Correo Electrónico" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="createModel.FullName" Label="Nombre Completo" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="createModel.Password" Label="Contraseña Inicial (mínimo 8 caracteres)" InputType="InputType.Password" Required="true" Class="mb-3" />
+            <MudSelect T="string" @bind-Value="createModel.Role" Label="Rol y Permisos" Class="mb-3">
+                <MudSelectItem Value="@("Admin")">Administrador (Control total excepto suscripción)</MudSelectItem>
+                <MudSelectItem Value="@("Manager")">Encargado (Catálogo, salón, cocina, gastos)</MudSelectItem>
+                <MudSelectItem Value="@("Employee")">Mozo / Cocina (Toma de pedidos y visualización)</MudSelectItem>
+            </MudSelect>
+        }
+        else
+        {
+            <MudTextField @bind-Value="updateModel.FullName" Label="Nombre Completo" Required="true" Class="mb-3" />
+            <MudSelect T="string" @bind-Value="updateModel.Role" Label="Rol y Permisos" Class="mb-3">
+                <MudSelectItem Value="@("Admin")">Administrador</MudSelectItem>
+                <MudSelectItem Value="@("Manager")">Encargado</MudSelectItem>
+                <MudSelectItem Value="@("Employee")">Mozo / Empleado</MudSelectItem>
+            </MudSelect>
+            <MudCheckBox @bind-Value="updateModel.IsActive" Label="Usuario Habilitado para Acceder" Color="Color.Success" T="bool" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveUser">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<UserDto> users = new();
+    private bool loading = true;
+    private bool dialogOpen = false;
+    private bool isEditing = false;
+    private int editingUserId = 0;
+    private CreateUserRequest createModel = new();
+    private UpdateUserRequest updateModel = new();
+    private DialogOptions dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        loading = true;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
+            users = res ?? new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private Color GetRoleColor(string role) => role switch
+    {
+        "Owner" => Color.Primary,
+        "Admin" => Color.Secondary,
+        "Manager" => Color.Info,
+        _ => Color.Default
+    };
+
+    private void OpenCreateDialog()
+    {
+        isEditing = false;
+        createModel = new CreateUserRequest { Role = "Employee" };
+        dialogOpen = true;
+    }
+
+    private void OpenEditDialog(UserDto user)
+    {
+        isEditing = true;
+        editingUserId = user.Id;
+        updateModel = new UpdateUserRequest
+        {
+            FullName = user.FullName,
+            Role = user.Role,
+            IsActive = user.IsActive
+        };
+        dialogOpen = true;
+    }
+
+    private async Task SaveUser()
+    {
+        if (isEditing)
+        {
+            var res = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", updateModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Usuario actualizado", Severity.Success);
+                dialogOpen = false;
+                await LoadUsers();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add("Error: " + err, Severity.Error);
+            }
+        }
+        else
+        {
+            if (createModel.Password.Length < 8)
+            {
+                Snackbar.Add("La contraseña debe tener al menos 8 caracteres", Severity.Warning);
+                return;
+            }
+
+            var res = await Http.PostAsJsonAsync("api/Users", createModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Empleado registrado exitosamente", Severity.Success);
+                dialogOpen = false;
+                await LoadUsers();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add("Error: " + err, Severity.Error);
+            }
+        }
+    }
+}

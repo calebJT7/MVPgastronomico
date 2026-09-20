@@ -1,0 +1,464 @@
+@page "/insumos"
+@using RotiseriaWeb.Models
+@using RotiseriaWeb.Services
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Insumos y Stock - SaaS Gastronómico</PageTitle>
+
+<FeatureGate Feature="@FeatureCodes.AdvancedInventory"
+             FeatureName="Control Avanzado de Insumos y Stock"
+             Description="Gestioná insumos e ingredientes (harina, queso, carnes, bebidas), puntos de reposición con alertas de stock mínimo, registro de compras a proveedores y mermas con costeo automático.">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">Insumos y Materias Primas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Control de existencias, costos por unidad, compras y mermas.</MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.RemoveCircleOutline" OnClick="OpenWasteDialog">
+                Registrar Merma
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.AddShoppingCart" OnClick="OpenPurchaseDialog">
+                Ingreso de Compra
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+                Nuevo Insumo
+            </MudButton>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudCard Elevation="2" Class="pa-3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">TOTAL INSUMOS ACTIVOS</MudText>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">@supplies.Count</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudCard Elevation="2" Class="pa-3">
+                <MudText Typo="Typo.caption" Color="Color.Error">INSUMOS CON STOCK CRÍTICO</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Error" Class="font-weight-bold">
+                    @supplies.Count(s => s.IsLowStock)
+                </MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudCard Elevation="2" Class="pa-3">
+                <MudText Typo="Typo.caption" Color="Color.Primary">VALOR ESTIMADO EN INVENTARIO</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
+                    $@supplies.Sum(s => s.CurrentStock * s.CostPerUnit).ToString("N2")
+                </MudText>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Filter Bar -->
+    <MudCard Elevation="1" Class="pa-3 mb-4">
+        <div class="d-flex flex-wrap align-center gap-4">
+            <MudTextField @bind-Value="searchString" Placeholder="Buscar por nombre o proveedor..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" />
+            <MudSwitch @bind-Value="onlyLowStock" Label="Ver solo stock bajo mínimo" Color="Color.Error" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSupplies" StartIcon="@Icons.Material.Filled.Refresh">
+                Filtrar
+            </MudButton>
+        </div>
+    </MudCard>
+
+    @if (loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (!filteredSupplies.Any())
+    {
+        <MudPaper Class="pa-6 text-center" Elevation="1">
+            <MudText Typo="Typo.body1" Color="Color.Secondary">No se encontraron insumos.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudTable Items="@filteredSupplies" Dense="true" Hover="true" Striped="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>Insumo</MudTh>
+                <MudTh>Unidad</MudTh>
+                <MudTh Style="text-align: right;">Stock Actual</MudTh>
+                <MudTh Style="text-align: right;">Stock Mínimo</MudTh>
+                <MudTh Style="text-align: right;">Costo Unitario</MudTh>
+                <MudTh Style="text-align: right;">Valor Total</MudTh>
+                <MudTh>Proveedor</MudTh>
+                <MudTh>Estado Alerta</MudTh>
+                <MudTh Style="text-align: center;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><b>@context.Name</b></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Unit</MudChip></MudTd>
+                <MudTd Style="text-align: right; font-weight: bold;">
+                    @context.CurrentStock.ToString("N2") @context.Unit
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    @context.MinimumStock.ToString("N2") @context.Unit
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    $@context.CostPerUnit.ToString("N2")
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    $@((context.CurrentStock * context.CostPerUnit).ToString("N2"))
+                </MudTd>
+                <MudTd>@(string.IsNullOrWhiteSpace(context.Supplier) ? "-" : context.Supplier)</MudTd>
+                <MudTd>
+                    @if (context.IsLowStock)
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Warning">
+                            Reponer Stock
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined">
+                            Óptimo
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteSupply(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <!-- Dialog Create / Edit Supply -->
+    <MudDialog @bind-Visible="supplyDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(isEditing ? "Editar Insumo" : "Nuevo Insumo")</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="supplyModel.Name" Label="Nombre del Insumo (ej. Harina 000, Muzzarella)" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudSelect @bind-Value="supplyModel.Unit" Label="Unidad de Medida" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("kg")">Kilogramos (kg)</MudSelectItem>
+                <MudSelectItem Value="@("gr")">Gramos (gr)</MudSelectItem>
+                <MudSelectItem Value="@("lt")">Litros (lt)</MudSelectItem>
+                <MudSelectItem Value="@("ml")">Mililitros (ml)</MudSelectItem>
+                <MudSelectItem Value="@("un")">Unidades (un)</MudSelectItem>
+                <MudSelectItem Value="@("porcion")">Porción</MudSelectItem>
+            </MudSelect>
+            <div class="d-flex gap-3 mb-3">
+                <MudNumericField @bind-Value="supplyModel.CurrentStock" Label="Stock Inicial" Variant="Variant.Outlined" Min="0m" Format="N2" />
+                <MudNumericField @bind-Value="supplyModel.MinimumStock" Label="Stock Mínimo Alerta" Variant="Variant.Outlined" Min="0m" Format="N2" />
+            </div>
+            <div class="d-flex gap-3 mb-3">
+                <MudNumericField @bind-Value="supplyModel.CostPerUnit" Label="Costo por Unidad ($)" Variant="Variant.Outlined" Min="0m" Format="N2" />
+                <MudTextField @bind-Value="supplyModel.Supplier" Label="Proveedor Habitual" Variant="Variant.Outlined" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => supplyDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSupplyAsync" Disabled="saving">
+                @(saving ? "Guardando..." : "Guardar Insumo")
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <!-- Dialog Register Waste / Merma -->
+    <MudDialog @bind-Visible="wasteDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Registrar Desperdicio o Merma</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudSelect @bind-Value="wasteModel.SupplyId" Label="Seleccionar Insumo" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var s in supplies)
+                {
+                    <MudSelectItem Value="@s.Id">@s.Name (@s.Unit) - Actual: @s.CurrentStock @s.Unit</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField @bind-Value="wasteModel.Quantity" Label="Cantidad de Merma" Variant="Variant.Outlined" Min="0.01m" Format="N2" Class="mb-3" />
+            <MudTextField @bind-Value="wasteModel.Reason" Label="Causa de la Merma (vencimiento, cocción, rotura)" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => wasteDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="SaveWasteAsync" Disabled="savingWaste">
+                @(savingWaste ? "Registrando..." : "Confirmar Merma")
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <!-- Dialog Quick Purchase Entry -->
+    <MudDialog @bind-Visible="purchaseDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Ingreso de Compra a Proveedor</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="purchaseSupplierName" Label="Proveedor" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="purchaseInvoiceNumber" Label="N° Factura / Remito (Opcional)" Variant="Variant.Outlined" Class="mb-3" />
+
+            <MudSelect @bind-Value="purchaseSupplyId" Label="Insumo Adquirido" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var s in supplies)
+                {
+                    <MudSelectItem Value="@s.Id">@s.Name (@s.Unit)</MudSelectItem>
+                }
+            </MudSelect>
+            <div class="d-flex gap-3 mb-3">
+                <MudNumericField @bind-Value="purchaseQuantity" Label="Cantidad Comprada" Variant="Variant.Outlined" Min="0.01m" Format="N2" />
+                <MudNumericField @bind-Value="purchaseUnitCost" Label="Precio Unitario ($)" Variant="Variant.Outlined" Min="0m" Format="N2" />
+            </div>
+            @if (purchaseQuantity > 0 && purchaseUnitCost > 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-2">
+                    Total Compra: <b>$@((purchaseQuantity * purchaseUnitCost).ToString("N2"))</b>
+                </MudAlert>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => purchaseDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SavePurchaseAsync" Disabled="savingPurchase">
+                @(savingPurchase ? "Registrando..." : "Confirmar Compra y Sumar Stock")
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+
+</FeatureGate>
+
+@code {
+    private List<SupplyDto> supplies = new();
+    private bool loading = true;
+    private string searchString = string.Empty;
+    private bool onlyLowStock = false;
+
+    private bool supplyDialogVisible = false;
+    private bool isEditing = false;
+    private int editingSupplyId = 0;
+    private SupplyWriteRequest supplyModel = new();
+    private bool saving = false;
+
+    private bool wasteDialogVisible = false;
+    private RegisterWasteRequest wasteModel = new();
+    private bool savingWaste = false;
+
+    private bool purchaseDialogVisible = false;
+    private string purchaseSupplierName = string.Empty;
+    private string purchaseInvoiceNumber = string.Empty;
+    private int purchaseSupplyId = 0;
+    private decimal purchaseQuantity = 0;
+    private decimal purchaseUnitCost = 0;
+    private bool savingPurchase = false;
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+
+    private IEnumerable<SupplyDto> filteredSupplies => supplies.Where(s =>
+        (string.IsNullOrWhiteSpace(searchString) || s.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) || (s.Supplier ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) &&
+        (!onlyLowStock || s.IsLowStock));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSupplies();
+    }
+
+    private async Task LoadSupplies()
+    {
+        loading = true;
+        try
+        {
+            var url = $"api/supplies?q={Uri.EscapeDataString(searchString)}&onlyLowStock={onlyLowStock.ToString().ToLower()}";
+            var res = await Http.GetFromJsonAsync<List<SupplyDto>>(url);
+            supplies = res ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar insumos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        isEditing = false;
+        editingSupplyId = 0;
+        supplyModel = new SupplyWriteRequest { Unit = "kg" };
+        supplyDialogVisible = true;
+    }
+
+    private void OpenEditDialog(SupplyDto dto)
+    {
+        isEditing = true;
+        editingSupplyId = dto.Id;
+        supplyModel = new SupplyWriteRequest
+        {
+            Name = dto.Name,
+            Unit = dto.Unit,
+            CurrentStock = dto.CurrentStock,
+            MinimumStock = dto.MinimumStock,
+            CostPerUnit = dto.CostPerUnit,
+            Supplier = dto.Supplier
+        };
+        supplyDialogVisible = true;
+    }
+
+    private async Task SaveSupplyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(supplyModel.Name))
+        {
+            Snackbar.Add("El nombre del insumo es requerido", Severity.Warning);
+            return;
+        }
+
+        saving = true;
+        try
+        {
+            HttpResponseMessage res;
+            if (isEditing)
+            {
+                res = await Http.PutAsJsonAsync($"api/supplies/{editingSupplyId}", supplyModel);
+            }
+            else
+            {
+                res = await Http.PostAsJsonAsync("api/supplies", supplyModel);
+            }
+
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Insumo guardado correctamente", Severity.Success);
+                supplyDialogVisible = false;
+                await LoadSupplies();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al guardar: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task DeleteSupply(int id)
+    {
+        try
+        {
+            var res = await Http.DeleteAsync($"api/supplies/{id}");
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Insumo eliminado", Severity.Success);
+                await LoadSupplies();
+            }
+            else
+            {
+                Snackbar.Add("Error al eliminar insumo", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OpenWasteDialog()
+    {
+        wasteModel = new RegisterWasteRequest { SupplyId = supplies.FirstOrDefault()?.Id ?? 0, Quantity = 0 };
+        wasteDialogVisible = true;
+    }
+
+    private async Task SaveWasteAsync()
+    {
+        if (wasteModel.SupplyId <= 0 || wasteModel.Quantity <= 0)
+        {
+            Snackbar.Add("Seleccioná un insumo y una cantidad válida", Severity.Warning);
+            return;
+        }
+
+        savingWaste = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/supplies/waste", wasteModel);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Merma registrada y stock descontado", Severity.Success);
+                wasteDialogVisible = false;
+                await LoadSupplies();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingWaste = false;
+        }
+    }
+
+    private void OpenPurchaseDialog()
+    {
+        purchaseSupplierName = string.Empty;
+        purchaseInvoiceNumber = string.Empty;
+        purchaseSupplyId = supplies.FirstOrDefault()?.Id ?? 0;
+        purchaseQuantity = 0;
+        purchaseUnitCost = supplies.FirstOrDefault()?.CostPerUnit ?? 0;
+        purchaseDialogVisible = true;
+    }
+
+    private async Task SavePurchaseAsync()
+    {
+        if (purchaseSupplyId <= 0 || purchaseQuantity <= 0)
+        {
+            Snackbar.Add("Seleccioná un insumo y una cantidad válida", Severity.Warning);
+            return;
+        }
+
+        savingPurchase = true;
+        try
+        {
+            var req = new RegisterPurchaseRequest
+            {
+                SupplierName = string.IsNullOrWhiteSpace(purchaseSupplierName) ? "Proveedor General" : purchaseSupplierName,
+                InvoiceNumber = purchaseInvoiceNumber,
+                Date = DateTime.UtcNow,
+                Items = new List<PurchaseItemInputDto>
+                {
+                    new PurchaseItemInputDto
+                    {
+                        SupplyId = purchaseSupplyId,
+                        Quantity = purchaseQuantity,
+                        UnitCost = purchaseUnitCost
+                    }
+                }
+            };
+
+            var res = await Http.PostAsJsonAsync("api/supplies/purchases", req);
+            if (res.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Compra registrada y stock actualizado", Severity.Success);
+                purchaseDialogVisible = false;
+                await LoadSupplies();
+            }
+            else
+            {
+                var err = await res.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error: {err}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            savingPurchase = false;
+        }
+    }
+}
