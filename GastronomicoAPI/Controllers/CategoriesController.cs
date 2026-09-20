@@ -27,7 +27,7 @@ public class CategoriesController : ControllerBase
         Ok(await _db.Categories.AsNoTracking().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToListAsync());
 
     [HttpPost]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Create(Category category)
     {
         category.Id = 0;
@@ -47,7 +47,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Update(int id, Category incoming)
     {
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id);

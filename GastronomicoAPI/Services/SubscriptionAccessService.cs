@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RotiseriaAPI.Data;
+using RotiseriaAPI.Middleware;
 using RotiseriaAPI.Models;
 using RotiseriaAPI.Security;
 
@@ -38,6 +39,9 @@ public class SubscriptionAccessService
 
     public async Task EnsureCanOperateAsync()
     {
+        if (_tenant.Role == UserRoleNames.Tester)
+            return;
+
         var sub = await GetCurrentAsync();
         if (sub == null)
             throw new SubscriptionBlockedException("El negocio no tiene una suscripción activa.");
@@ -58,6 +62,9 @@ public class SubscriptionAccessService
 
     public async Task EnsureFeatureAsync(string featureCode)
     {
+        if (_tenant.Role == UserRoleNames.Tester)
+            return;
+
         await EnsureCanOperateAsync();
         var sub = await GetCurrentAsync();
         if (sub?.Plan == null)
@@ -72,6 +79,9 @@ public class SubscriptionAccessService
 
     public async Task EnsureLimitAsync(string resource, int currentCount)
     {
+        if (_tenant.Role == UserRoleNames.Tester)
+            return;
+
         await EnsureCanOperateAsync();
         var sub = await GetCurrentAsync();
         var plan = sub?.Plan;

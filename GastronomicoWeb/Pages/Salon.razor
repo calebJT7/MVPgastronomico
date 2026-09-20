@@ -20,7 +20,7 @@
             </MudText>
         </div>
         <div class="d-flex gap-2">
-            <AuthorizeView Roles="Owner,Admin,Manager">
+            <AuthorizeView Roles="Owner,Admin,Manager,Tester">
                 <Authorized>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                                OnClick="CrearNuevaMesaAsync">
@@ -63,7 +63,7 @@
                               Style="@($"background-color: {bgColor}; color: white; border-radius: 12px;")">
                         <div class="d-flex justify-space-between align-center mb-1">
                             <MudText Typo="Typo.caption" Style="opacity: 0.8;">MESA</MudText>
-                            <AuthorizeView Roles="Owner,Admin">
+                            <AuthorizeView Roles="Owner,Admin,Tester">
                                 <Authorized>
                                     @if (!isOcupada)
                                     {

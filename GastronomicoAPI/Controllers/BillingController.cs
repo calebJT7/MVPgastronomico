@@ -28,7 +28,7 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("checkout")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Checkout([FromBody] CreateCheckoutRequest request)
     {
         var businessId = User.GetBusinessIdSafe();
@@ -146,7 +146,7 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("switch-plan/{planCode}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> SwitchPlan(string planCode)
     {
         var businessId = User.GetBusinessIdSafe();
@@ -177,7 +177,7 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("cancel")]
-    [Authorize(Roles = $"{UserRoleNames.Owner}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Cancel()
     {
         var businessId = User.GetBusinessIdSafe();
@@ -192,7 +192,7 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("reactivate")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Reactivate([FromServices] IWebHostEnvironment env)
     {
         var businessId = User.GetBusinessIdSafe();

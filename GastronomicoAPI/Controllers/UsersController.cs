@@ -11,7 +11,7 @@ namespace RotiseriaAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+[Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _db;

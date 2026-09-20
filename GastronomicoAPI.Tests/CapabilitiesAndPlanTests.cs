@@ -1,6 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using RotiseriaAPI.Data;
+using RotiseriaAPI.Middleware;
 using RotiseriaAPI.Models;
 using RotiseriaAPI.Security;
 using RotiseriaAPI.Services;
@@ -272,5 +274,68 @@ public class CapabilitiesAndPlanTests : IDisposable
 
         var movements = await db.InventoryMovements.Where(m => m.Type == InventoryMovementType.SaleConsumption).ToListAsync();
         Assert.Equal(2, movements.Count);
+    }
+
+    [Fact]
+    public async Task TesterRole_BypassesFeatureLocksAndLimits()
+    {
+        var tenant = new TenantContext();
+        // Set user with Tester role on a business with basic plan
+        tenant.Set(businessId: 50, userId: 99, role: UserRoleNames.Tester);
+
+        using var db = CreateDbContext(tenant);
+        db.Businesses.Add(new Business { Id = 50, TradeName = "Tester Cafe" });
+
+        var basicPlan = new Plan { Id = 1, Code = "basic", Name = "Plan Básico", MaxProducts = 5 };
+        db.Plans.Add(basicPlan);
+
+        var featRecipes = new Feature { Id = 3, Code = FeatureCodes.Recipes, Name = "Recetas", IsPremium = true };
+        db.Features.Add(featRecipes);
+
+        // Subscription has expired status to also test EnsureCanOperateAsync bypass
+        db.Subscriptions.Add(new Subscription
+        {
+            BusinessId = 50,
+            PlanId = 1,
+            Status = SubscriptionStatus.PastDue,
+            CurrentPeriodEndUtc = DateTime.UtcNow.AddDays(-5)
+        });
+        await db.SaveChangesAsync();
+
+        var access = new SubscriptionAccessService(db, tenant);
+
+        // 1. EnsureCanOperateAsync should NOT throw despite subscription being PastDue
+        await access.EnsureCanOperateAsync();
+
+        // 2. EnsureFeatureAsync should NOT throw despite feature being premium and plan being basic
+        await access.EnsureFeatureAsync(FeatureCodes.Recipes);
+
+        // 3. EnsureLimitAsync should NOT throw even if count (100) > max (5)
+        await access.EnsureLimitAsync("products", 100);
+    }
+
+    [Fact]
+    public async Task DataSeeder_SeedsInternalTesterUserWithCorrectRoleAndCredentials()
+    {
+        var tenant = new TenantContext();
+        tenant.EnableBypass();
+        using var db = CreateDbContext(tenant);
+        var config = new ConfigurationBuilder().Build();
+
+        await DataSeeder.SeedAsync(db, config);
+
+        var tester = await db.Users.FirstOrDefaultAsync(u => u.Email == "testertld1@gmail.com");
+        Assert.NotNull(tester);
+        Assert.Equal(UserRole.Tester, tester.Role);
+        Assert.True(tester.IsActive);
+        Assert.True(BCrypt.Net.BCrypt.Verify("justin1612", tester.PasswordHash));
+
+        var testerBiz = await db.Businesses.FirstOrDefaultAsync(b => b.Id == tester.BusinessId);
+        Assert.NotNull(testerBiz);
+
+        var sub = await db.Subscriptions.Include(s => s.Plan).FirstOrDefaultAsync(s => s.BusinessId == testerBiz.Id);
+        Assert.NotNull(sub);
+        Assert.Equal(SubscriptionStatus.Active, sub.Status);
+        Assert.Equal("premium", sub.Plan!.Code);
     }
 }

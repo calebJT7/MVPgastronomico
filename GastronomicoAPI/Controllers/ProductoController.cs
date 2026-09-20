@@ -50,7 +50,7 @@ public class ProductoController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<ActionResult<Product>> PostProduct(ProductWriteRequest request)
     {
         var count = await _context.Products.CountAsync();
@@ -92,7 +92,7 @@ public class ProductoController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> PutProduct(int id, ProductWriteRequest request)
     {
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
@@ -112,7 +112,7 @@ public class ProductoController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);

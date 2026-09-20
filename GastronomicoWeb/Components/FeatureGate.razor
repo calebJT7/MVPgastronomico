@@ -37,6 +37,20 @@ else
                            OnClick="@(() => Navigation.NavigateTo("/subscription"))">
                     Mejorar a Plan Premium
                 </MudButton>
+
+                @if (SaaSState.IsTester)
+                {
+                    <div class="mt-4 pa-2 rounded" style="background: rgba(33, 150, 243, 0.1); border: 1px solid var(--mud-palette-info);">
+                        <MudText Typo="Typo.caption" Color="Color.Info" Class="font-weight-bold d-block mb-1">
+                            MODO TESTER INTERNO ACTIVO
+                        </MudText>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Build"
+                                   OnClick="@(() => _testerBypass = true)">
+                            Probar Módulo de todas formas (Bypass Tester)
+                        </MudButton>
+                    </div>
+                }
             </MudCardContent>
         </MudCard>
     </MudContainer>
@@ -55,7 +69,8 @@ else
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    private bool IsEnabled => string.IsNullOrWhiteSpace(Feature) || SaaSState.HasFeature(Feature);
+    private bool _testerBypass = false;
+    private bool IsEnabled => _testerBypass || string.IsNullOrWhiteSpace(Feature) || SaaSState.HasFeature(Feature);
 
     protected override void OnInitialized()
     {

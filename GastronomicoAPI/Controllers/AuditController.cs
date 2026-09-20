@@ -8,7 +8,7 @@ namespace RotiseriaAPI.Controllers;
 
 [Route("api/audit")]
 [ApiController]
-[Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+[Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
 public class AuditController : ControllerBase
 {
     private readonly AppDbContext _db;

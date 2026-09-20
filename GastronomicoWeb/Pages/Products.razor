@@ -1,5 +1,5 @@
 @page "/products-admin"
-@attribute [Authorize(Roles = "Owner,Admin,Manager")]
+@attribute [Authorize(Roles = "Owner,Admin,Manager,Tester")]
 @using RotiseriaWeb.Models
 @inject HttpClient Http
 @inject ISnackbar Snackbar

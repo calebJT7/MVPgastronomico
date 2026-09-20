@@ -32,7 +32,7 @@ public class BusinessController : ControllerBase
     }
 
     [HttpPut]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Update(BusinessUpdateRequest request)
     {
         var id = User.GetBusinessIdSafe();
@@ -68,7 +68,7 @@ public class BusinessController : ControllerBase
     }
 
     [HttpPost("onboarding/complete")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> CompleteOnboarding()
     {
         var id = User.GetBusinessIdSafe();

@@ -158,6 +158,68 @@ public static class DataSeeder
             );
             await db.SaveChangesAsync();
         }
+
+        // 5. Seed Internal Testing User (testertld1@gmail.com / justin1612)
+        var testerEmail = "testertld1@gmail.com";
+        var existingTester = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == testerEmail);
+        if (existingTester == null)
+        {
+            var testBusiness = await db.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync();
+            if (testBusiness == null)
+            {
+                testBusiness = new Business
+                {
+                    TradeName = "SaaS Gastronómico (Pruebas)",
+                    Email = testerEmail,
+                    BusinessType = BusinessType.General,
+                    TablesEnabled = true,
+                    DeliveryEnabled = true,
+                    TakeawayEnabled = true,
+                    KitchenEnabled = true,
+                    ReservationsEnabled = true,
+                    CashControlEnabled = true,
+                    InventoryEnabled = true,
+                    OnboardingCompleted = true,
+                    OnboardingStep = OnboardingStep.Completed
+                };
+                db.Businesses.Add(testBusiness);
+                await db.SaveChangesAsync();
+            }
+
+            var activeSub = await db.Subscriptions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.BusinessId == testBusiness.Id);
+            if (activeSub == null)
+            {
+                db.Subscriptions.Add(new Subscription
+                {
+                    BusinessId = testBusiness.Id,
+                    PlanId = premiumPlan.Id,
+                    Status = SubscriptionStatus.Active,
+                    StartedAtUtc = DateTime.UtcNow,
+                    CurrentPeriodStartUtc = DateTime.UtcNow,
+                    CurrentPeriodEndUtc = DateTime.UtcNow.AddYears(10)
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var testerUser = new User
+            {
+                BusinessId = testBusiness.Id,
+                Email = testerEmail,
+                FullName = "Tester Interno",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("justin1612"),
+                Role = UserRole.Tester,
+                IsActive = true
+            };
+            db.Users.Add(testerUser);
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            existingTester.Role = UserRole.Tester;
+            existingTester.PasswordHash = BCrypt.Net.BCrypt.HashPassword("justin1612");
+            existingTester.IsActive = true;
+            await db.SaveChangesAsync();
+        }
     }
 
     private static List<Feature> GetStandardFeatures() => new()

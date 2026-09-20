@@ -5,7 +5,8 @@ public enum UserRole
     Owner = 0,
     Admin = 1,
     Manager = 2,
-    Employee = 3
+    Employee = 3,
+    Tester = 4
 }
 
 public enum SubscriptionStatus

@@ -15,11 +15,11 @@ public class ExpensesController : ControllerBase
     public ExpensesController(AppDbContext context) => _context = context;
 
     [HttpGet]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> GetExpenses() => Ok(await _context.Expenses.AsNoTracking().OrderByDescending(e => e.Date).ToListAsync());
 
     [HttpPost]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> PostExpense(Models.Expense expense)
     {
         expense.Id = 0;

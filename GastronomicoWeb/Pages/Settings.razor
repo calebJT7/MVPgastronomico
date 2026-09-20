@@ -1,5 +1,5 @@
 @page "/settings"
-@attribute [Authorize(Roles = "Owner,Admin")]
+@attribute [Authorize(Roles = "Owner,Admin,Tester")]
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject SaaSStateService SaaSState

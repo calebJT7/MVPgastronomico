@@ -298,7 +298,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPatch("cancel/{id:int}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> CancelOrder(int id)
     {
         var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);

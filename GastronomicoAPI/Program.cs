@@ -77,8 +77,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("ManageCatalog", p => p.RequireRole(UserRoleNames.Owner, UserRoleNames.Admin, UserRoleNames.Manager));
-    options.AddPolicy("ManageUsers", p => p.RequireRole(UserRoleNames.Owner, UserRoleNames.Admin));
+    options.AddPolicy("ManageCatalog", p => p.RequireRole(UserRoleNames.Owner, UserRoleNames.Admin, UserRoleNames.Manager, UserRoleNames.Tester));
+    options.AddPolicy("ManageUsers", p => p.RequireRole(UserRoleNames.Owner, UserRoleNames.Admin, UserRoleNames.Tester));
 });
 
 builder.Services.AddScoped<PrintService>();

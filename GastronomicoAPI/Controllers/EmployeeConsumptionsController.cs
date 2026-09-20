@@ -15,7 +15,7 @@ public class EmployeeConsumptionsController : ControllerBase
     public EmployeeConsumptionsController(AppDbContext context) => _context = context;
 
     [HttpGet]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<IActionResult> GetConsumptions() =>
         Ok(await _context.EmployeeConsumptions.AsNoTracking().OrderByDescending(c => c.Date).ToListAsync());
 

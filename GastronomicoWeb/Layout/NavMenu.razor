@@ -15,7 +15,13 @@
             </div>
         </div>
         <div>
-            @if (SaaSState.IsPremium)
+            @if (SaaSState.IsTester)
+            {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BugReport">
+                    TESTER
+                </MudChip>
+            }
+            else if (SaaSState.IsPremium)
             {
                 <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WorkspacePremium">
                     PREMIUM
@@ -85,7 +91,7 @@
         </MudNavLink>
     </MudNavGroup>
 
-    <AuthorizeView Roles="Owner,Admin">
+    <AuthorizeView Roles="Owner,Admin,Tester">
         <Authorized>
             <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
                 <MudNavLink Href="/dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Analytics">

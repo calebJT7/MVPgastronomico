@@ -19,6 +19,7 @@ public class SaaSStateService
 
     public bool HasFeature(string code) => EnabledFeatures.Contains(code);
     public bool IsPremium => HasFeature(FeatureCodes.Kds) || string.Equals(PlanCode, "premium", StringComparison.OrdinalIgnoreCase);
+    public bool IsTester => string.Equals(UserRole, "Tester", StringComparison.OrdinalIgnoreCase);
 
     public event Action? OnChange;
 

@@ -33,7 +33,7 @@ public class TablesController : ControllerBase
         await _context.Tables.AsNoTracking().OrderBy(t => t.Number).ToListAsync();
 
     [HttpPost]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Manager},{UserRoleNames.Tester}")]
     public async Task<ActionResult<Table>> Create(Table table)
     {
         var count = await _context.Tables.CountAsync();
@@ -57,7 +57,7 @@ public class TablesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin}")]
+    [Authorize(Roles = $"{UserRoleNames.Owner},{UserRoleNames.Admin},{UserRoleNames.Tester}")]
     public async Task<IActionResult> Delete(int id)
     {
         var table = await _context.Tables.FirstOrDefaultAsync(t => t.Id == id);
