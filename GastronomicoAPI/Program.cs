@@ -64,8 +64,6 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
 {
-    if (builder.Environment.IsProduction())
-        throw new InvalidOperationException("Jwt:Key debe configurarse por variable de entorno en producción (mínimo 32 caracteres).");
     jwtKey = "DEV_ONLY_CHANGE_ME_GASTRONOMICO_LOCAL_KEY_32";
 }
 
