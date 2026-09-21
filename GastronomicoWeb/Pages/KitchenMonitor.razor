@@ -142,8 +142,9 @@ else
     {
         try
         {
+            var hubUri = new Uri(Http.BaseAddress ?? new Uri(Navigation.BaseUri), "hubs/orders");
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/hubs/orders"), options =>
+                .WithUrl(hubUri, options =>
                 {
                     options.AccessTokenProvider = async () =>
                     {

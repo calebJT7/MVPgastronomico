@@ -16,11 +16,31 @@ builder.Services.AddAuthorizationCore();
 
 builder.Services.AddTransient<AuthHeaderHandler>();
 
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+Uri baseUri;
+
+if (!string.IsNullOrWhiteSpace(apiBaseUrl))
+{
+    baseUri = new Uri(apiBaseUrl.EndsWith("/") ? apiBaseUrl : apiBaseUrl + "/");
+}
+else if (builder.HostEnvironment.BaseAddress.Contains(":5000"))
+{
+    baseUri = new Uri("http://localhost:5285/");
+}
+else if (builder.HostEnvironment.BaseAddress.Contains(":7206"))
+{
+    baseUri = new Uri("https://localhost:7148/");
+}
+else
+{
+    baseUri = new Uri(builder.HostEnvironment.BaseAddress);
+}
+
 builder.Services.AddScoped(sp =>
 {
     var handler = sp.GetRequiredService<AuthHeaderHandler>();
     handler.InnerHandler = new HttpClientHandler();
-    return new HttpClient(handler) { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+    return new HttpClient(handler) { BaseAddress = baseUri };
 });
 
 builder.Services.AddScoped<SaaSStateService>();

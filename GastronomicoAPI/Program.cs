@@ -23,15 +23,26 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Default", policy =>
     {
-        if (origins.Length == 0)
+        if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("http://localhost:5000", "https://localhost:7206")
+            policy.SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else if (origins.Length > 0)
+        {
+            policy.WithOrigins(origins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
         else
         {
-            policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+            policy.WithOrigins("http://localhost:5000", "https://localhost:7206", "http://127.0.0.1:5000", "https://127.0.0.1:7206")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
     });
 });

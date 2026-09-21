@@ -99,8 +99,17 @@
             }
             else
             {
-                var err = await response.Content.ReadAsStringAsync();
-                errorMessage = string.IsNullOrWhiteSpace(err) ? "Usuario o contraseña inválidos." : err;
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    errorMessage = "Usuario o contraseña inválidos.";
+                }
+                else
+                {
+                    var err = await response.Content.ReadAsStringAsync();
+                    errorMessage = !string.IsNullOrWhiteSpace(err)
+                        ? err
+                        : $"Error de comunicación con la API (HTTP {(int)response.StatusCode} {response.StatusCode}). Verifique que la API esté iniciada.";
+                }
             }
         }
         catch (Exception ex)
