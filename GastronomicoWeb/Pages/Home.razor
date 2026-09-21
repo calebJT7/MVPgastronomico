@@ -61,7 +61,7 @@
                     </MudChip>
                     @foreach (var cat in categories)
                     {
-                        <MudChip T="int?" Selected="@(_selectedCategoryId == cat.Id)"
+                        <MudChip @key="cat.Id" T="int?" Selected="@(_selectedCategoryId == cat.Id)"
                                  Color="@(_selectedCategoryId == cat.Id ? Color.Primary : Color.Default)"
                                  OnClick="@(() => _selectedCategoryId = cat.Id)" Variant="Variant.Filled" Size="Size.Small">
                             @cat.Name
@@ -85,7 +85,7 @@
                 {
                     @foreach (var prod in FilteredProducts)
                     {
-                        <MudItem xs="12" sm="6" lg="4">
+                        <MudItem @key="prod.Id" xs="12" sm="6" lg="4">
                             <MudCard Elevation="3" Class="h-100 d-flex flex-column justify-space-between">
                                 <MudCardContent Class="pb-1">
                                     <div class="d-flex justify-space-between align-start mb-1">
@@ -126,7 +126,7 @@
                     <div class="mb-3 d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
                         @foreach (var item in cart)
                         {
-                            <MudPaper Elevation="1" Class="pa-2 d-flex align-center justify-space-between">
+                            <MudPaper @key="item.ProductId" Elevation="1" Class="pa-2 d-flex align-center justify-space-between">
                                 <div style="flex-grow: 1;">
                                     <MudText Typo="Typo.body2" Class="font-weight-bold">@item.ProductName</MudText>
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">$@item.UnitPrice.ToString("N2") c/u</MudText>
@@ -182,7 +182,7 @@
                                Margin="Margin.Dense" Class="mb-2" AnchorOrigin="Origin.BottomCenter">
                         @foreach (var t in tables)
                         {
-                            <MudSelectItem T="int?" Value="@t.Id">
+                            <MudSelectItem @key="t.Id" T="int?" Value="@t.Id">
                                 Mesa @t.Number @(t.Status == "Ocupada" ? "🔴 (Ocupada - Adicionar)" : "🟢 (Libre)")
                             </MudSelectItem>
                         }
@@ -203,7 +203,7 @@
                                Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Clearable="true" AnchorOrigin="Origin.BottomCenter">
                         @foreach (var c in customers)
                         {
-                            <MudSelectItem T="int?" Value="@c.Id">@c.Name (@c.Phone)</MudSelectItem>
+                            <MudSelectItem @key="c.Id" T="int?" Value="@c.Id">@c.Name (@c.Phone)</MudSelectItem>
                         }
                     </MudSelect>
 

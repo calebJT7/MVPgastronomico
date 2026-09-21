@@ -79,22 +79,16 @@
                 if (auth != null)
                 {
                     var businessJson = JsonSerializer.Serialize(auth);
-                    await AuthState.MarkUserAsAuthenticatedAsync(auth.Token, businessJson);
                     State.SetAuthInfo(auth);
+                    await AuthState.MarkUserAsAuthenticatedAsync(auth.Token, businessJson);
                     Snackbar.Add($"¡Bienvenido de vuelta!", Severity.Success);
 
-                    if (!auth.OnboardingCompleted)
-                    {
-                        Nav.NavigateTo("/onboarding");
-                    }
-                    else if (!string.IsNullOrWhiteSpace(ReturnUrl))
-                    {
-                        Nav.NavigateTo(ReturnUrl);
-                    }
-                    else
-                    {
-                        Nav.NavigateTo("/");
-                    }
+                    var target = !auth.OnboardingCompleted
+                        ? "/onboarding"
+                        : (!string.IsNullOrWhiteSpace(ReturnUrl) ? ReturnUrl : "/");
+
+                    Nav.NavigateTo(target);
+                    return;
                 }
             }
             else
@@ -111,13 +105,11 @@
                         : $"Error de comunicación con la API (HTTP {(int)response.StatusCode} {response.StatusCode}). Verifique que la API esté iniciada.";
                 }
             }
+            isSubmitting = false;
         }
         catch (Exception ex)
         {
             errorMessage = "Error de conexión con el servidor: " + ex.Message;
-        }
-        finally
-        {
             isSubmitting = false;
         }
     }
