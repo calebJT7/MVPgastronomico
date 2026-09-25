@@ -3,54 +3,118 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h4" Class="mb-4" Color="Color.Primary">Gestión de Clientes</MudText>
+<PageTitle>Clientes y Fiados - SaaS Gastronómico</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenNewDialog">
-        Nuevo Cliente
-    </MudButton>
-    <MudSwitch @bind-Value="onlyDebtors" Label="Ver solo deudores" Color="Color.Error" />
-</MudStack>
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Gestión de Clientes y Cuentas Corrientes</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de clientes habituales, datos de contacto y seguimiento de saldos y fiados.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenNewDialog" Size="Size.Small">
+            Nuevo Cliente
+        </MudButton>
+    </div>
 
-<MudTable Items="@displayedCustomers" T="RotiseriaWeb.Models.Customer" Hover="true" Loading="@loading">
-    <HeaderContent>
-        <MudTh>Nombre</MudTh>
-        <MudTh>Teléfono</MudTh>
-        <MudTh>Saldo</MudTh>
-        <MudTh>Acciones</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Nombre">@context.Name</MudTd>
-        <MudTd DataLabel="Teléfono">@context.Phone</MudTd>
-        <MudTd DataLabel="Saldo" Style="@(context.Balance < 0 ? "color:red; font-weight:bold;" : "color:green;")">
-            $ @context.Balance
-        </MudTd>
-        <MudTd DataLabel="Acciones">
-            @* ACÁ LE AGREGAMOS EL EVENTO ONCLICK AL BOTÓN EDITAR *@
-            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Info"
-                       OnClick="@(() => OpenEditDialog(context))">
-                Editar
-            </MudButton>
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+    <!-- Filter Bar -->
+    <div class="mud-paper pa-3 mb-4 d-flex flex-wrap justify-space-between align-center gap-3">
+        <div class="d-flex align-center gap-2">
+            <MudSwitch @bind-Value="onlyDebtors" Label="Ver únicamente clientes con saldo deudor (fiados)" Color="Color.Error" />
+        </div>
+        <div class="d-flex gap-2">
+            <span class="saas-badge saas-badge-neutral">
+                @displayedCustomers.Count() clientes listados
+            </span>
+            @if (customers.Any(c => c.Balance < 0))
+            {
+                <span class="saas-badge saas-badge-error">
+                    Deuda total: $ @Math.Abs(customers.Where(c => c.Balance < 0).Sum(c => c.Balance)).ToString("N2")
+                </span>
+            }
+        </div>
+    </div>
+
+    <!-- Customer Table -->
+    <div class="mud-paper overflow-hidden">
+        <MudTable Items="@displayedCustomers" T="RotiseriaWeb.Models.Customer" Hover="true" Elevation="0" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Nombre / Razón Social</MudTh>
+                <MudTh>Teléfono / Contacto</MudTh>
+                <MudTh Style="text-align: right;">Estado de Cuenta / Saldo</MudTh>
+                <MudTh Style="text-align: right;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nombre">
+                    <div class="d-flex align-center gap-2">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: var(--saas-surface-subtle); color: var(--saas-text-secondary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; border: 1px solid var(--saas-border);">
+                            @(context.Name.Length > 0 ? context.Name[0].ToString().ToUpperInvariant() : "C")
+                        </div>
+                        <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Name</span>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Teléfono">
+                    @(string.IsNullOrWhiteSpace(context.Phone) ? "-" : context.Phone)
+                </MudTd>
+                <MudTd DataLabel="Saldo" Style="text-align: right;">
+                    @if (context.Balance < 0)
+                    {
+                        <span class="saas-badge saas-badge-error" style="font-size: 0.8125rem; font-weight: 700;">
+                            Debe $ @Math.Abs(context.Balance).ToString("N2")
+                        </span>
+                    }
+                    else if (context.Balance > 0)
+                    {
+                        <span class="saas-badge saas-badge-success" style="font-size: 0.8125rem; font-weight: 700;">
+                            A favor $ @context.Balance.ToString("N2")
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="saas-badge saas-badge-neutral" style="font-size: 0.8125rem;">
+                            Al día ($ 0.00)
+                        </span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Acciones" Style="text-align: right;">
+                    <MudTooltip Text="Editar Cliente">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No hay clientes para mostrar</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Podés dar de alta un nuevo cliente haciendo clic en el botón superior.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</MudContainer>
 
 @* --- VENTANA FLOTANTE PARA CREAR O EDITAR --- *@
 <MudDialog @bind-Visible="isDialogOpen" Options="dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            @(isEditing ? "Editar Cliente" : "Nuevo Cliente")
-        </MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">
+                @(isEditing ? "Editar Cliente" : "Nuevo Cliente")
+            </MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="currentCustomer.Name" Label="Nombre" Required="true"
-                      RequiredError="El nombre es obligatorio" />
-        <MudTextField @bind-Value="currentCustomer.Phone" Label="Teléfono" />
-        <MudNumericField @bind-Value="currentCustomer.Balance" Label="Saldo (Deuda con signo negativo, ej: -5000)" />
+        <MudTextField @bind-Value="currentCustomer.Name" Label="Nombre y Apellido / Razón Social" Required="true"
+                      Variant="Variant.Outlined" RequiredError="El nombre es obligatorio" Class="mb-3" />
+        <MudTextField @bind-Value="currentCustomer.Phone" Label="Teléfono de Contacto" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="currentCustomer.Balance" Label="Saldo Inicial (Deuda con signo negativo, ej: -5000)"
+                         Variant="Variant.Outlined" Format="N2" HelperText="Importe negativo representa deuda fiada del cliente" />
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CloseDialog">Cancelar</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="SaveCustomer">Guardar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="CloseDialog">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveCustomer">
+            Guardar
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -59,7 +123,6 @@
     private bool loading = true;
     private bool onlyDebtors = false;
 
-    // Variables para controlar la ventanita flotante
     private bool isDialogOpen = false;
     private bool isEditing = false;
     private RotiseriaWeb.Models.Customer currentCustomer = new();
@@ -93,19 +156,16 @@
         }
     }
 
-    // Abre la ventana en modo "CREAR"
     private void OpenNewDialog()
     {
         isEditing = false;
-        currentCustomer = new RotiseriaWeb.Models.Customer(); // Limpiamos los datos
+        currentCustomer = new RotiseriaWeb.Models.Customer();
         isDialogOpen = true;
     }
 
-    // Abre la ventana en modo "EDITAR"
     private void OpenEditDialog(RotiseriaWeb.Models.Customer customer)
     {
         isEditing = true;
-        // Hacemos una copia para no modificar la tabla hasta que el usuario apriete "Guardar"
         currentCustomer = new RotiseriaWeb.Models.Customer
         {
             Id = customer.Id,
@@ -121,7 +181,6 @@
         isDialogOpen = false;
     }
 
-    // Manda los datos a la API (POST o PUT)
     private async Task SaveCustomer()
     {
         if (string.IsNullOrWhiteSpace(currentCustomer.Name))
@@ -130,18 +189,15 @@
             return;
         }
 
-        HttpResponseMessage response;
-
         try
         {
+            HttpResponseMessage response;
             if (isEditing)
             {
-                // Actualizar cliente existente (PUT)
                 response = await Http.PutAsJsonAsync($"api/Customer/{currentCustomer.Id}", currentCustomer);
             }
             else
             {
-                // Crear cliente nuevo (POST)
                 response = await Http.PostAsJsonAsync("api/Customer", currentCustomer);
             }
 
@@ -149,7 +205,7 @@
             {
                 Snackbar.Add(isEditing ? "Cliente actualizado" : "Cliente creado", Severity.Success);
                 isDialogOpen = false;
-                await LoadCustomers(); // Recargamos la tabla para ver los cambios
+                await LoadCustomers();
             }
             else
             {

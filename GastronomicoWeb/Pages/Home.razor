@@ -32,53 +32,61 @@
     }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-2">
-    <MudGrid>
+<MudContainer MaxWidth="MaxWidth.False" Class="py-2">
+    <MudGrid Spacing="3">
         @* COLUMNA IZQUIERDA: PRODUCTOS *@
         <MudItem xs="12" md="8">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Typo="Typo.h4" Color="Color.Primary">Menú & Carta</MudText>
+            <div class="d-flex flex-wrap justify-space-between align-center mb-4 gap-2">
+                <div>
+                    <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Menú & Catálogo</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Explorá productos, filtrá por categorías y armá la comanda en segundos.</MudText>
+                </div>
                 @if (_lastCreatedOrder != null)
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Print"
-                               OnClick="@(() => _showReceiptModal = true)">
-                        Ver Último Ticket (#@_lastCreatedOrder.Id)
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="@(() => _showReceiptModal = true)" Size="Size.Small">
+                        Último Ticket (#@_lastCreatedOrder.Id)
                     </MudButton>
                 }
             </div>
 
             @* BUSCADOR Y CATEGORÍAS *@
-            <MudPaper Elevation="2" Class="pa-3 mb-4">
-                <MudTextField @bind-Value="searchString" Placeholder="Buscar por producto o categoría..."
+            <div class="mud-paper pa-4 mb-4">
+                <MudTextField @bind-Value="searchString" Placeholder="Buscar por nombre de producto o categoría..."
                               Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                               Margin="Margin.Dense" Immediate="true" Clearable="true" Class="mb-3" />
 
-                <div class="d-flex flex-wrap gap-1">
-                    <MudChip T="int?" Selected="@(_selectedCategoryId == null)"
-                             Color="@(_selectedCategoryId == null ? Color.Primary : Color.Default)"
-                             OnClick="@(() => _selectedCategoryId = null)" Variant="Variant.Filled" Size="Size.Small">
-                        Todos
-                    </MudChip>
+                <div class="d-flex flex-wrap gap-1 align-center">
+                    <button type="button" class="saas-cat-pill @(_selectedCategoryId == null ? "active" : "")"
+                            @onclick="@(() => _selectedCategoryId = null)">
+                        Todos los platos
+                    </button>
                     @foreach (var cat in categories)
                     {
-                        <MudChip @key="cat.Id" T="int?" Selected="@(_selectedCategoryId == cat.Id)"
-                                 Color="@(_selectedCategoryId == cat.Id ? Color.Primary : Color.Default)"
-                                 OnClick="@(() => _selectedCategoryId = cat.Id)" Variant="Variant.Filled" Size="Size.Small">
+                        <button type="button" class="saas-cat-pill @(_selectedCategoryId == cat.Id ? "active" : "")"
+                                @onclick="@(() => _selectedCategoryId = cat.Id)">
                             @cat.Name
-                        </MudChip>
+                        </button>
                     }
                 </div>
-            </MudPaper>
+            </div>
 
-            <MudGrid>
+            <MudGrid Spacing="3">
                 @if (products == null)
                 {
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="ma-4" />
+                    <MudItem xs="12" Class="text-center py-8">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Cargando catálogo...</MudText>
+                    </MudItem>
                 }
                 else if (!FilteredProducts.Any())
                 {
                     <MudItem xs="12">
-                        <MudAlert Severity="Severity.Info">No se encontraron productos disponibles con los filtros aplicados.</MudAlert>
+                        <div class="mud-paper pa-8 text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No se encontraron productos</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Probá ajustando el término de búsqueda o seleccioná otra categoría.</MudText>
+                        </div>
                     </MudItem>
                 }
                 else
@@ -86,30 +94,34 @@
                     @foreach (var prod in FilteredProducts)
                     {
                         <MudItem @key="prod.Id" xs="12" sm="6" lg="4">
-                            <MudCard Elevation="3" Class="h-100 d-flex flex-column justify-space-between">
-                                <MudCardContent Class="pb-1">
-                                    <div class="d-flex justify-space-between align-start mb-1">
-                                        <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@prod.Name</MudText>
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                            <div class="saas-product-card pa-4 h-100 d-flex flex-column justify-space-between">
+                                <div>
+                                    <div class="d-flex justify-space-between align-start mb-2 gap-1">
+                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600; line-height: 1.2;">@prod.Name</MudText>
+                                        <span class="saas-badge saas-badge-neutral" style="font-size: 0.7rem; white-space: nowrap;">
                                             @(prod.Category?.Name ?? "General")
-                                        </MudChip>
+                                        </span>
                                     </div>
-                                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
-                                        $@prod.Price.ToString("N2")
-                                    </MudText>
-                                    @if (prod.Stock > 0)
-                                    {
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Stock: @prod.Stock</MudText>
-                                    }
-                                </MudCardContent>
-                                <MudCardActions>
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                    <div class="d-flex align-baseline gap-2 mb-2">
+                                        <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--saas-text-primary);">
+                                            $@prod.Price.ToString("N2")
+                                        </MudText>
+                                        @if (prod.Stock > 0)
+                                        {
+                                            <span class="saas-badge @(prod.Stock <= 5 ? "saas-badge-warning" : "saas-badge-neutral")" style="font-size: 0.65rem;">
+                                                Stock: @prod.Stock
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Small"
                                                StartIcon="@Icons.Material.Filled.AddShoppingCart"
                                                OnClick="@(() => AddToCart(prod))">
-                                        AGREGAR
+                                        Agregar al Pedido
                                     </MudButton>
-                                </MudCardActions>
-                            </MudCard>
+                                </div>
+                            </div>
                         </MudItem>
                     }
                 }
@@ -118,116 +130,140 @@
 
         @* COLUMNA DERECHA: CARRITO *@
         <MudItem xs="12" md="4">
-            <MudPaper Elevation="4" Class="pa-4 rounded-lg">
-                <MudText Typo="Typo.h5" Class="mb-3 font-weight-bold">Comanda Actual</MudText>
+            <div class="mud-paper pa-5" style="position: sticky; top: 76px;">
+                <div class="d-flex justify-space-between align-center mb-4 pb-2" style="border-bottom: 1px solid var(--saas-border-subtle);">
+                    <div>
+                        <MudText Typo="Typo.h6" Style="font-weight: 700;">Comanda Actual</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Detalle de ítems a facturar</MudText>
+                    </div>
+                    @if (cart.Any())
+                    {
+                        <span class="saas-badge saas-badge-info">@cart.Sum(x => x.Quantity) ítems</span>
+                    }
+                </div>
 
                 @if (cart.Any())
                 {
-                    <div class="mb-3 d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
+                    <div class="mb-4 d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 4px;">
                         @foreach (var item in cart)
                         {
-                            <MudPaper @key="item.ProductId" Elevation="1" Class="pa-2 d-flex align-center justify-space-between">
-                                <div style="flex-grow: 1;">
-                                    <MudText Typo="Typo.body2" Class="font-weight-bold">@item.ProductName</MudText>
+                            <div @key="item.ProductId" class="d-flex align-center justify-space-between pa-2 rounded"
+                                 style="border: 1px solid var(--saas-border-subtle); background-color: var(--saas-surface);">
+                                <div style="flex-grow: 1; min-width: 0;" class="pr-2">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                                        @item.ProductName
+                                    </MudText>
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">$@item.UnitPrice.ToString("N2") c/u</MudText>
                                 </div>
-                                <div class="d-flex align-center">
+                                <div class="d-flex align-center gap-1">
                                     <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
-                                                   Color="Color.Error" OnClick="@(() => RestarCantidad(item))" />
-                                    <MudText Typo="Typo.body2" Class="mx-2 font-weight-bold">@item.Quantity</MudText>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Success"
-                                                   OnClick="@(() => AddToCartFromList(item))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                                   Color="Color.Error" OnClick="@(() => RemoveFromCart(item))" Class="ml-1" />
+                                                   Color="Color.Default" OnClick="@(() => RestarCantidad(item))"
+                                                   Style="width: 26px; height: 26px; padding: 0; border: 1px solid var(--saas-border);" />
+                                    <span style="min-width: 24px; text-align: center; font-weight: 600; font-size: 0.875rem;">@item.Quantity</span>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                                                   OnClick="@(() => AddToCartFromList(item))"
+                                                   Style="width: 26px; height: 26px; padding: 0; border: 1px solid var(--saas-border);" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => RemoveFromCart(item))"
+                                                   Class="ml-1" Style="width: 26px; height: 26px; padding: 0;" />
                                 </div>
-                            </MudPaper>
+                            </div>
                         }
                     </div>
 
-                    <div class="d-flex justify-space-between mb-1">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Subtotal:</MudText>
-                        <MudText Typo="Typo.body2"><b>$ @SubtotalCart.ToString("N2")</b></MudText>
-                    </div>
-
-                    @if (orderType == "Delivery")
-                    {
+                    <div class="mb-3 pa-3 rounded" style="background-color: var(--saas-surface-subtle); border: 1px solid var(--saas-border-subtle);">
                         <div class="d-flex justify-space-between mb-1">
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Costo Envío:</MudText>
-                            <MudText Typo="Typo.body2"><b>$ @deliveryCost.ToString("N2")</b></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Subtotal de platos</MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">$ @SubtotalCart.ToString("N2")</MudText>
                         </div>
-                    }
 
-                    <MudDivider Class="my-2" />
+                        @if (orderType == "Delivery")
+                        {
+                            <div class="d-flex justify-space-between mb-1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Costo de Envío</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">$ @deliveryCost.ToString("N2")</MudText>
+                            </div>
+                        }
 
-                    <div class="d-flex justify-space-between mb-3">
-                        <MudText Typo="Typo.h6">Total a Cobrar:</MudText>
-                        <MudText Typo="Typo.h6" Color="Color.Primary"><b>$ @TotalCart.ToString("N2")</b></MudText>
+                        <MudDivider Class="my-2" />
+
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Total a Cobrar</MudText>
+                            <MudText Typo="Typo.h5" Style="font-weight: 800; color: var(--saas-text-primary);">$ @TotalCart.ToString("N2")</MudText>
+                        </div>
                     </div>
                 }
                 else
                 {
-                    <MudAlert Severity="Severity.Info" Class="mb-3">El carrito está vacío</MudAlert>
+                    <div class="pa-6 text-center my-3 rounded" style="border: 1px dashed var(--saas-border); background-color: var(--saas-surface-subtle);">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Size="Size.Medium" Color="Color.Secondary" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Comanda Vacía</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Seleccioná platos del catálogo para agregarlos.</MudText>
+                    </div>
                 }
 
-                <MudSelect T="string" @bind-Value="orderType" Label="Modalidad de Pedido" Variant="Variant.Outlined"
-                           Margin="Margin.Dense" Class="mb-2" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem T="string" Value="@("Local")">Mostrador (Para llevar)</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Delivery")">Envío a Domicilio</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Salon")">Comer en Salón (Mesa)</MudSelectItem>
-                </MudSelect>
-
-                @if (orderType == "Salon")
-                {
-                    <MudSelect T="int?" @bind-Value="selectedTableId" Label="Seleccionar Mesa" Variant="Variant.Outlined"
-                               Margin="Margin.Dense" Class="mb-2" AnchorOrigin="Origin.BottomCenter">
-                        @foreach (var t in tables)
-                        {
-                            <MudSelectItem @key="t.Id" T="int?" Value="@t.Id">
-                                Mesa @t.Number @(t.Status == "Ocupada" ? "🔴 (Ocupada - Adicionar)" : "🟢 (Libre)")
-                            </MudSelectItem>
-                        }
-                    </MudSelect>
-                }
-                else if (orderType == "Delivery")
-                {
-                    <MudTextField @bind-Value="deliveryAddress" Label="Dirección de Entrega" Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" Class="mb-2" />
-
-                    <MudNumericField T="decimal" @bind-Value="deliveryCost" Label="Costo del Envío ($)"
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Min="0" Format="N2" />
-                }
-
-                @if (orderType != "Salon")
-                {
-                    <MudSelect T="int?" @bind-Value="selectedCustomerId" Label="Cliente Registrado (Opcional)"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Clearable="true" AnchorOrigin="Origin.BottomCenter">
-                        @foreach (var c in customers)
-                        {
-                            <MudSelectItem @key="c.Id" T="int?" Value="@c.Id">@c.Name (@c.Phone)</MudSelectItem>
-                        }
+                <div class="d-flex flex-column gap-2 mt-3">
+                    <MudSelect T="string" @bind-Value="orderType" Label="Modalidad de Pedido" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="string" Value="@("Local")">Mostrador (Para llevar)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Delivery")">Envío a Domicilio</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Salon")">Comer en Salón (Mesa)</MudSelectItem>
                     </MudSelect>
 
-                    @if (!selectedCustomerId.HasValue)
+                    @if (orderType == "Salon")
                     {
-                        <MudTextField @bind-Value="customerName" Label="Nombre de Cliente Ocasional"
-                                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                        <MudSelect T="int?" @bind-Value="selectedTableId" Label="Seleccionar Mesa" Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var t in tables)
+                            {
+                                <MudSelectItem @key="t.Id" T="int?" Value="@t.Id">
+                                    Mesa @t.Number @(t.Status == "Ocupada" ? "🔴 (Ocupada - Adicionar)" : "🟢 (Libre)")
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
                     }
-                }
+                    else if (orderType == "Delivery")
+                    {
+                        <MudTextField @bind-Value="deliveryAddress" Label="Dirección de Entrega" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
 
-                <MudSelect T="string" @bind-Value="selectedPayment" Label="Medio de Pago" Variant="Variant.Outlined"
-                           Margin="Margin.Dense" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem T="string" Value="@("Efectivo")">Efectivo</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Transferencia")">Transferencia / QR</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Tarjeta")">Tarjeta Débito/Crédito</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Cuenta Corriente")">Cuenta Corriente (Fiado)</MudSelectItem>
-                </MudSelect>
+                        <MudNumericField T="decimal" @bind-Value="deliveryCost" Label="Costo del Envío ($)"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Format="N2" />
+                    }
 
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
-                           Disabled="@(isProcessing || !cart.Any() || (orderType != "Salon" && !selectedCustomerId.HasValue && string.IsNullOrWhiteSpace(customerName)))"
-                           OnClick="ConfirmarPedido" StartIcon="@Icons.Material.Filled.CheckCircle">
-                    @(isProcessing ? "PROCESANDO..." : "CONFIRMAR PEDIDO")
-                </MudButton>
-            </MudPaper>
+                    @if (orderType != "Salon")
+                    {
+                        <MudSelect T="int?" @bind-Value="selectedCustomerId" Label="Cliente Registrado (Opcional)"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var c in customers)
+                            {
+                                <MudSelectItem @key="c.Id" T="int?" Value="@c.Id">@c.Name (@c.Phone)</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        @if (!selectedCustomerId.HasValue)
+                        {
+                            <MudTextField @bind-Value="customerName" Label="Nombre de Cliente Ocasional"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        }
+                    }
+
+                    <MudSelect T="string" @bind-Value="selectedPayment" Label="Medio de Pago" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="string" Value="@("Efectivo")">Efectivo</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Transferencia")">Transferencia / QR</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Tarjeta")">Tarjeta Débito/Crédito</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Cuenta Corriente")">Cuenta Corriente (Fiado)</MudSelectItem>
+                    </MudSelect>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
+                               Class="mt-2"
+                               Disabled="@(isProcessing || !cart.Any() || (orderType != "Salon" && !selectedCustomerId.HasValue && string.IsNullOrWhiteSpace(customerName)))"
+                               OnClick="ConfirmarPedido" StartIcon="@Icons.Material.Filled.CheckCircle">
+                        @(isProcessing ? "Procesando comanda..." : "Confirmar Pedido")
+                    </MudButton>
+                </div>
+            </div>
         </MudItem>
     </MudGrid>
 </MudContainer>
@@ -235,14 +271,17 @@
 @* MODAL DE TICKET TÉRMICO *@
 <MudDialog @bind-Visible="_showReceiptModal" Options="_receiptDialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Ticket de Venta</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Ticket de Venta</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
         @if (_lastCreatedOrder != null)
         {
-            <div id="thermal-receipt-container" class="pa-3" style="background-color: white; color: black; font-family: monospace; border: 1px dashed #ccc; border-radius: 4px;">
+            <div id="thermal-receipt-container" class="pa-4 thermal-receipt-preview" style="font-family: monospace; border-radius: 8px;">
                 <div style="text-align: center; margin-bottom: 8px;">
-                    <div style="font-size: 16px; font-weight: bold;">@(SaaSState.CurrentBusiness?.TradeName ?? "SAAS GASTRONOMICO")</div>
+                    <div style="font-size: 15px; font-weight: bold; letter-spacing: -0.01em;">@(SaaSState.CurrentBusiness?.TradeName ?? "SAAS GASTRONOMICO")</div>
                     @if (!string.IsNullOrWhiteSpace(SaaSState.CurrentBusiness?.TaxId))
                     {
                         <div style="font-size: 11px;">CUIT: @SaaSState.CurrentBusiness.TaxId</div>
@@ -255,7 +294,7 @@
                     {
                         <div style="font-size: 11px;">Tel: @SaaSState.CurrentBusiness.Phone</div>
                     }
-                    <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                    <div class="thermal-receipt-divider" style="margin: 8px 0;"></div>
                     <div style="font-size: 13px; font-weight: bold;">PEDIDO #@_lastCreatedOrder.Id</div>
                     <div style="font-size: 11px;">Fecha: @_lastCreatedOrder.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
                     <div style="font-size: 11px;">Tipo: @_lastCreatedOrder.OrderType</div>
@@ -269,10 +308,10 @@
                     }
                 </div>
 
-                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                <div class="thermal-receipt-divider" style="margin: 8px 0;"></div>
                 <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                     <thead>
-                        <tr style="text-align: left; border-bottom: 1px solid #ddd;">
+                        <tr style="text-align: left; border-bottom: 1px solid var(--saas-border-subtle);">
                             <th>Cant</th>
                             <th>Prod</th>
                             <th style="text-align: right;">Total</th>
@@ -289,32 +328,32 @@
                         }
                     </tbody>
                 </table>
-                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                <div style="border-bottom: 1px dashed black; margin: 8px 0;"></div>
 
-                <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                    <span>Pago:</span>
-                    <span>@_lastCreatedOrder.PaymentMethod</span>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+                    <span>Medio de Pago:</span>
+                    <span style="font-weight: bold;">@_lastCreatedOrder.PaymentMethod</span>
                 </div>
                 @if (_lastCreatedOrder.DeliveryCost > 0)
                 {
-                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                        <span>Envío:</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
+                        <span>Costo de Envío:</span>
                         <span>$@_lastCreatedOrder.DeliveryCost.ToString("N2")</span>
                     </div>
                 }
-                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 6px; padding-top: 4px; border-top: 1px solid #ddd;">
                     <span>TOTAL:</span>
                     <span>$@_lastCreatedOrder.Total.ToString("N2")</span>
                 </div>
 
-                <div style="text-align: center; margin-top: 12px; font-size: 11px;">
+                <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #555;">
                     ¡Muchas gracias por su compra!
                 </div>
             </div>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => _showReceiptModal = false)">Cerrar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => _showReceiptModal = false)">Cerrar</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReceipt">
             Imprimir Ticket
         </MudButton>

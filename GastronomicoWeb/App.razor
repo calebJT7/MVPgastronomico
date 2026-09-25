@@ -9,11 +9,17 @@
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
-            <PageTitle>No encontrado</PageTitle>
+            <PageTitle>Página no encontrada - SaaS Gastronómico</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <MudContainer Class="pa-8 text-center">
-                    <MudText Typo="Typo.h4" Color="Color.Error">404 - Página no encontrada</MudText>
-                    <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" Href="/">Ir al Inicio</MudButton>
+                <MudContainer MaxWidth="MaxWidth.Small" Class="pa-12 text-center">
+                    <div class="mx-auto mb-4" style="width: 56px; height: 56px; border-radius: 14px; background: var(--saas-surface-subtle); border: 1px solid var(--saas-border); display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Style="color: var(--saas-text-secondary); font-size: 28px;" />
+                    </div>
+                    <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary);">404 - Página no encontrada</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mt-2 mb-6">La página que estás buscando no existe o fue movida.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="rounded-lg px-6 py-2 font-weight-bold">
+                        Volver al Inicio
+                    </MudButton>
                 </MudContainer>
             </LayoutView>
         </NotFound>

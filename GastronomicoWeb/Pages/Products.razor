@@ -4,27 +4,33 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <div class="d-flex justify-space-between align-center mb-4">
+<PageTitle>Productos y Carta - SaaS Gastronómico</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Gestión del Menú y Productos</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Administra tus platos, bebidas, precios y stock</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Gestión del Menú y Productos</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Administrá platos, precios de venta, control de stock y visibilidad en el punto de venta.</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/categories" StartIcon="@Icons.Material.Filled.Category">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/categories" StartIcon="@Icons.Material.Filled.Category" Size="Size.Small">
             Gestionar Categorías
         </MudButton>
     </div>
 
     @* Formulario rápido para agregar un producto *@
-    <MudPaper Elevation="3" Class="pa-4 mb-6 rounded-lg">
-        <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Agregar Nuevo Producto</MudText>
-        <MudGrid Class="align-center">
+    <div class="mud-paper pa-5 mb-5">
+        <div class="d-flex align-center gap-2 mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Agregar Nuevo Producto a la Carta</MudText>
+        </div>
+
+        <MudGrid Class="align-center" Spacing="2">
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_newProduct.Name" Label="Nombre (Ej: Empanada de Carne)" Variant="Variant.Outlined"
+                <MudTextField @bind-Value="_newProduct.Name" Label="Nombre del Producto (Ej: Pizza Muzzarella)" Variant="Variant.Outlined"
                               Margin="Margin.Dense" Required="true" />
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newProduct.Price" Label="Precio ($)" Variant="Variant.Outlined"
+                <MudNumericField @bind-Value="_newProduct.Price" Label="Precio Venta ($)" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Min="0m" Format="N2" />
             </MudItem>
             <MudItem xs="12" sm="3">
@@ -43,62 +49,86 @@
             </MudItem>
             <MudItem xs="12" sm="1">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="AgregarProducto"
-                           Disabled="@(string.IsNullOrWhiteSpace(_newProduct.Name) || _newProduct.Price <= 0 || _saving)">
+                           Disabled="@(string.IsNullOrWhiteSpace(_newProduct.Name) || _newProduct.Price <= 0 || _saving)"
+                           Style="height: 40px;">
                     +
                 </MudButton>
             </MudItem>
         </MudGrid>
-    </MudPaper>
+    </div>
 
     @* Buscador y filtros *@
-    <MudPaper Elevation="1" Class="pa-3 mb-4 d-flex align-center">
-        <MudTextField @bind-Value="_searchTerm" Placeholder="Buscar por nombre..." Variant="Variant.Outlined"
+    <div class="mud-paper pa-3 mb-4 d-flex align-center gap-2">
+        <MudTextField @bind-Value="_searchTerm" Placeholder="Buscar producto por nombre..." Variant="Variant.Outlined"
                       Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Class="mr-2" Immediate="false" OnKeyUp="@(async (e) => { if (e.Key == "Enter") await CargarProductos(); })" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CargarProductos">Buscar</MudButton>
-    </MudPaper>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CargarProductos" Size="Size.Medium">
+            Buscar
+        </MudButton>
+    </div>
 
     @* Tabla de productos existentes *@
-    <MudTable Items="@_products" T="Product" Dense="true" Hover="true" Elevation="3" Class="rounded-lg" Loading="@_loading">
-        <HeaderContent>
-            <MudTh>Nombre</MudTh>
-            <MudTh>Categoría</MudTh>
-            <MudTh>Precio</MudTh>
-            <MudTh>Stock</MudTh>
-            <MudTh>Estado</MudTh>
-            <MudTh Style="text-align: right">Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><b>@context.Name</b></MudTd>
-            <MudTd>
-                <MudChip T="string" Color="Color.Default" Size="Size.Small">
-                    @(context.Category?.Name ?? "General")
-                </MudChip>
-            </MudTd>
-            <MudTd><b>$ @context.Price.ToString("N2")</b></MudTd>
-            <MudTd>@context.Stock</MudTd>
-            <MudTd>
-                <MudSwitch T="bool" Value="@context.IsActive"
-                           ValueChanged="@(async (bool val) => await ToggleEstado(context))" Color="Color.Success"
-                           Label="@(context.IsActive ? "Activo" : "Pausado")" />
-            </MudTd>
-            <MudTd Style="text-align: right">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small"
-                               OnClick="@(() => AbrirEditar(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                               OnClick="@(() => EliminarProducto(context))" />
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">No se encontraron productos registrados.</MudText>
-        </NoRecordsContent>
-    </MudTable>
+    <div class="mud-paper overflow-hidden">
+        <MudTable Items="@_products" T="Product" Dense="true" Hover="true" Elevation="0" Loading="@_loading">
+            <HeaderContent>
+                <MudTh>Nombre</MudTh>
+                <MudTh>Categoría</MudTh>
+                <MudTh Style="text-align: right;">Precio</MudTh>
+                <MudTh Style="text-align: right;">Stock</MudTh>
+                <MudTh>Estado en Menú</MudTh>
+                <MudTh Style="text-align: right;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Name</span>
+                </MudTd>
+                <MudTd>
+                    <span class="saas-badge saas-badge-neutral">
+                        @(context.Category?.Name ?? "General")
+                    </span>
+                </MudTd>
+                <MudTd Style="text-align: right; font-weight: 700; color: var(--saas-text-primary);">
+                    $ @context.Price.ToString("N2")
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    <span class="saas-badge @(context.Stock <= 5 ? "saas-badge-warning" : "saas-badge-neutral")">
+                        @context.Stock
+                    </span>
+                </MudTd>
+                <MudTd>
+                    <MudSwitch T="bool" Value="@context.IsActive"
+                               ValueChanged="@(async (bool val) => await ToggleEstado(context))" Color="Color.Success"
+                               Label="@(context.IsActive ? "Activo" : "Pausado")" />
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    <MudTooltip Text="Editar Producto">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small"
+                                       OnClick="@(() => AbrirEditar(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                    </MudTooltip>
+                    <MudTooltip Text="Eliminar / Desactivar">
+                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => EliminarProducto(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.Fastfood" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No se encontraron productos registrados</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Comenzá agregando los primeros platos a la carta arriba.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
 </MudContainer>
 
 @* --- VENTANA FLOTANTE PARA EDITAR PRODUCTOS --- *@
 <MudDialog @bind-Visible="_isEditDialogOpen" Options="_dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Editar Producto</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Editar Producto</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
         <MudTextField @bind-Value="_editingProduct.Name" Label="Nombre" Required="true" Variant="Variant.Outlined" Class="mb-3" />
@@ -111,11 +141,11 @@
             }
         </MudSelect>
         <MudNumericField @bind-Value="_editingProduct.Stock" Label="Stock" Variant="Variant.Outlined" Class="mb-3" Min="0" />
-        <MudSwitch @bind-Value="_editingProduct.IsActive" Color="Color.Success" Label="Producto Activo para venta" />
+        <MudSwitch @bind-Value="_editingProduct.IsActive" Color="Color.Success" Label="Producto Activo para venta en POS" />
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CerrarEdicion">Cancelar</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="GuardarEdicion" Disabled="_saving">
+        <MudButton Variant="Variant.Outlined" OnClick="CerrarEdicion">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarEdicion" Disabled="_saving">
             @(_saving ? "Guardando..." : "Guardar Cambios")
         </MudButton>
     </DialogActions>
@@ -130,7 +160,6 @@
     private bool _saving = false;
     private string _searchTerm = string.Empty;
 
-    // Variables para el modo de edición
     private bool _isEditDialogOpen = false;
     private int _editingId = 0;
     private ProductWriteRequest _editingProduct = new();

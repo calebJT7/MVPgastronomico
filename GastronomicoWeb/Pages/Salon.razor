@@ -11,25 +11,33 @@
 
 <PageTitle>Salón y Mesas - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Mapa del Salón</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Gestión de mesas en tiempo real. @(IsConnected ? "🟢 Conectado" : "🟡 Conectando...")
-            </MudText>
+            <div class="d-flex align-center gap-2">
+                <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Mapa de Salón y Mesas</MudText>
+                @if (IsConnected)
+                {
+                    <span class="saas-badge saas-badge-success" style="font-size: 0.7rem;">● En Vivo (SignalR)</span>
+                }
+                else
+                {
+                    <span class="saas-badge saas-badge-warning" style="font-size: 0.7rem;">○ Conectando...</span>
+                }
+            </div>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión en tiempo real de mesas ocupadas, comandas en curso y cobro de cuentas.</MudText>
         </div>
         <div class="d-flex gap-2">
             <AuthorizeView Roles="Owner,Admin,Manager,Tester">
                 <Authorized>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                               OnClick="CrearNuevaMesaAsync">
+                               OnClick="CrearNuevaMesaAsync" Size="Size.Small">
                         Nueva Mesa
                     </MudButton>
                 </Authorized>
             </AuthorizeView>
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="CargarMesas">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="CargarMesas" Size="Size.Small">
                 Actualizar
             </MudButton>
         </div>
@@ -41,66 +49,95 @@
     }
     else if (!mesas.Any())
     {
-        <MudPaper Elevation="2" Class="pa-8 text-center">
+        <div class="mud-paper pa-8 text-center my-6">
             <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
-            <MudText Typo="Typo.h6">No hay mesas configuradas</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Agrega las mesas de tu salón para comenzar a tomar comandas.</MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">No hay mesas configuradas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Agregá las mesas de tu salón para comenzar a tomar pedidos y comandas presenciales.</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CrearNuevaMesaAsync">
                 Crear Mesa 1
             </MudButton>
-        </MudPaper>
+        </div>
     }
     else
     {
-        <MudGrid>
+        <!-- Resumen de estado de mesas -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="d-flex align-center gap-2 pa-2 px-3 rounded" style="background-color: var(--saas-surface); border: 1px solid var(--saas-border);">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #10b981;"></span>
+                <span style="font-size: 0.8125rem; font-weight: 600;">@mesas.Count(m => m.Status != "Ocupada") Libres</span>
+            </div>
+            <div class="d-flex align-center gap-2 pa-2 px-3 rounded" style="background-color: var(--saas-surface); border: 1px solid var(--saas-border);">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #ef4444;"></span>
+                <span style="font-size: 0.8125rem; font-weight: 600;">@mesas.Count(m => m.Status == "Ocupada") Ocupadas</span>
+            </div>
+            <div class="d-flex align-center gap-2 pa-2 px-3 rounded" style="background-color: var(--saas-surface); border: 1px solid var(--saas-border);">
+                <span style="font-size: 0.8125rem; color: var(--saas-text-secondary);">Total: @mesas.Count mesas</span>
+            </div>
+        </div>
+
+        <MudGrid Spacing="3">
             @foreach (var mesa in mesas)
             {
                 bool isOcupada = mesa.Status == "Ocupada";
-                string bgColor = isOcupada ? "#b71c1c" : "#1b5e20";
 
                 <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudPaper Elevation="4" Class="pa-4 text-center"
-                              Style="@($"background-color: {bgColor}; color: white; border-radius: 12px;")">
-                        <div class="d-flex justify-space-between align-center mb-1">
-                            <MudText Typo="Typo.caption" Style="opacity: 0.8;">MESA</MudText>
-                            <AuthorizeView Roles="Owner,Admin,Tester">
-                                <Authorized>
-                                    @if (!isOcupada)
+                    <div class="saas-mesa-card @(isOcupada ? "ocupada" : "libre") d-flex flex-column justify-space-between h-100">
+                        <div>
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--saas-text-secondary);">
+                                    MESA
+                                </span>
+                                <div class="d-flex align-center gap-1">
+                                    @if (isOcupada)
                                     {
-                                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small"
-                                                       Style="color: rgba(255,255,255,0.7);"
-                                                       OnClick="@(() => EliminarMesa(mesa.Id))" />
+                                        <span class="saas-badge saas-badge-error">Ocupada</span>
                                     }
-                                </Authorized>
-                            </AuthorizeView>
+                                    else
+                                    {
+                                        <span class="saas-badge saas-badge-success">Libre</span>
+                                        <AuthorizeView Roles="Owner,Admin,Tester">
+                                            <Authorized>
+                                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small"
+                                                               Color="Color.Default"
+                                                               OnClick="@(() => EliminarMesa(mesa.Id))"
+                                                               Style="padding: 2px; width: 22px; height: 22px;" />
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="text-center my-3">
+                                <MudText Typo="Typo.h2" Style="font-weight: 800; color: var(--saas-text-primary); line-height: 1;">
+                                    @mesa.Number
+                                </MudText>
+                            </div>
                         </div>
-                        <MudText Typo="Typo.h2"><b>@mesa.Number</b></MudText>
-                        <MudChip T="string" Size="Size.Small"
-                                 Style="@(isOcupada ? "background-color: rgba(0,0,0,0.3); color: white;" : "background-color: rgba(255,255,255,0.2); color: white;")">
-                            @(isOcupada ? "OCUPADA" : "LIBRE")
-                        </MudChip>
 
-                        <MudDivider Class="my-3" Style="background-color: rgba(255,255,255,0.2);" />
-
-                        @if (isOcupada)
-                        {
-                            <MudButton Variant="Variant.Filled" Style="background-color: white; color: #b71c1c; font-weight: bold;" Size="Size.Medium"
-                                       OnClick="@(() => VerCuenta(mesa.Id))" Class="mb-2" FullWidth="true">
-                                VER / COBRAR
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" Style="color: white; border-color: white;" Size="Size.Small"
-                                       OnClick="IrACaja" FullWidth="true">
-                                + Adicionar Pedido
-                            </MudButton>
-                        }
-                        else
-                        {
-                            <MudButton Variant="Variant.Outlined" Style="color: white; border-color: white;" Size="Size.Medium"
-                                       OnClick="IrACaja" FullWidth="true">
-                                Abrir Mesa
-                            </MudButton>
-                        }
-                    </MudPaper>
+                        <div class="mt-3 pt-3 d-flex flex-column gap-2" style="border-top: 1px solid var(--saas-border-subtle);">
+                            @if (isOcupada)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.Receipt"
+                                           OnClick="@(() => VerCuenta(mesa.Id))">
+                                    Ver / Cobrar Cuenta
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="IrACaja">
+                                    Adicionar Pedido
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" FullWidth="true"
+                                           StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                           OnClick="IrACaja">
+                                    Abrir Mesa
+                                </MudButton>
+                            }
+                        </div>
+                    </div>
                 </MudItem>
             }
         </MudGrid>
@@ -110,42 +147,57 @@
 @* MODAL PARA VER CUENTA Y COBRAR *@
 <MudDialog @bind-Visible="dialogVisible" Options="dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h5" Color="Color.Primary"><b>Cuenta Mesa @mesaSeleccionada?.Number</b></MudText>
+        <div class="d-flex align-center justify-space-between w-100 pr-4">
+            <div class="d-flex align-center gap-2">
+                <div style="width: 28px; height: 28px; border-radius: 6px; background-color: var(--saas-primary); color: var(--saas-primary-text); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Small" />
+                </div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Cuenta Mesa @mesaSeleccionada?.Number</MudText>
+            </div>
+            <span class="saas-badge saas-badge-error">En Atención</span>
+        </div>
     </TitleContent>
     <DialogContent>
         @if (cuentaActual != null)
         {
-            <MudList T="string" Dense="true" Class="mb-2">
-                @foreach (var item in cuentaActual.Items)
-                {
-                    <MudListItem T="string">
-                        <div class="d-flex justify-space-between align-center">
-                            <MudText Typo="Typo.body1">@item.Quantity x @item.ProductName</MudText>
-                            <MudText Typo="Typo.body1"><b>$@((item.UnitPrice * item.Quantity).ToString("N2"))</b></MudText>
-                        </div>
-                    </MudListItem>
-                }
-            </MudList>
-            <MudDivider Class="my-2" />
-            <div class="d-flex justify-space-between mt-2">
-                <MudText Typo="Typo.h6">Subtotal:</MudText>
-                <MudText Typo="Typo.h6"><b>$ @cuentaActual.Total.ToString("N2")</b></MudText>
+            <div class="mb-3" style="max-height: 220px; overflow-y: auto;">
+                <MudList T="string" Dense="true">
+                    @foreach (var item in cuentaActual.Items)
+                    {
+                        <MudListItem T="string" Class="px-0 py-1">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <span style="font-weight: 600;">@item.Quantity x</span>
+                                    <span class="ml-1">@item.ProductName</span>
+                                </div>
+                                <span style="font-weight: 600;">$@((item.UnitPrice * item.Quantity).ToString("N2"))</span>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
             </div>
 
-            <div class="d-flex gap-2 mt-3">
-                <MudSelect T="string" @bind-Value="medioPago" Label="Forma de Pago" Variant="Variant.Outlined" Dense="true">
+            <div class="pa-3 rounded mb-3" style="background-color: var(--saas-surface-subtle); border: 1px solid var(--saas-border-subtle);">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Subtotal de la Mesa:</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700; color: var(--saas-text-primary);">$ @cuentaActual.Total.ToString("N2")</MudText>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-2">
+                <MudSelect T="string" @bind-Value="medioPago" Label="Forma de Pago" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("Efectivo")">Efectivo</MudSelectItem>
                     <MudSelectItem Value="@("Tarjeta Débito/Crédito")">Tarjeta Débito/Crédito</MudSelectItem>
-                    <MudSelectItem Value="@("Transferencia / MP")">Transferencia / MP</MudSelectItem>
+                    <MudSelectItem Value="@("Transferencia / MP")">Transferencia / QR</MudSelectItem>
                 </MudSelect>
-                <MudNumericField @bind-Value="propinaMonto" Label="Propina ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Format="N2" />
+                <MudNumericField @bind-Value="propinaMonto" Label="Propina Voluntaria ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Format="N2" />
             </div>
 
             @if (propinaMonto > 0)
             {
-                <div class="d-flex justify-space-between mt-2">
-                    <MudText Typo="Typo.subtitle1">Total con Propina:</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Success"><b>$ @((cuentaActual.Total + propinaMonto).ToString("N2"))</b></MudText>
+                <div class="d-flex justify-space-between align-center pa-2 px-3 rounded mb-3" style="background-color: var(--saas-success-bg); border: 1px solid var(--saas-success-border);">
+                    <span style="font-weight: 600; color: var(--saas-success-text);">Total Final con Propina:</span>
+                    <span style="font-weight: 800; font-size: 1.15rem; color: var(--saas-success-text);">$ @((cuentaActual.Total + propinaMonto).ToString("N2"))</span>
                 </div>
             }
 
@@ -155,17 +207,17 @@
             <div class="d-flex justify-space-between align-center mb-2">
                 <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.CallSplit" OnClick="ToggleSplitBill">
-                    @(showSplitBill ? "Ocultar División" : "Dividir Cuenta")
+                    @(showSplitBill ? "Ocultar Calculadora de División" : "Dividir Cuenta por Persona")
                 </MudButton>
             </div>
 
             @if (showSplitBill)
             {
-                <div class="pa-3 rounded mb-2" style="background: rgba(0,0,0,0.03); border: 1px solid #ddd;">
+                <div class="pa-3 rounded mb-2" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
                     @if (!SaaSState.HasFeature(FeatureCodes.SplitBills))
                     {
                         <div class="text-center py-2">
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">PLAN PREMIUM</MudChip>
+                            <span class="saas-badge saas-badge-warning mb-1">PLAN PREMIUM</span>
                             <MudText Typo="Typo.body2" Class="my-1">La división de cuentas y propinas por persona está disponible en el Plan Premium.</MudText>
                             <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Nav.NavigateTo("/subscription"))">Mejorar Plan</MudButton>
                         </div>
@@ -179,10 +231,10 @@
                         </div>
                         @if (splitResult != null)
                         {
-                            <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
-                                <b>@splitResult.Parts personas</b> pagan: <b>$@splitResult.PerPerson.ToString("N2") cada una</b>
-                                <br/><small>(Total c/propina: $@splitResult.TotalWithTip.ToString("N2"))</small>
-                            </MudAlert>
+                            <div class="pa-2 mt-2 rounded" style="background-color: var(--saas-info-bg); border: 1px solid var(--saas-info-border); color: var(--saas-info-text); font-size: 0.8125rem;">
+                                <b>@splitResult.Parts comensales</b> pagan: <b>$@splitResult.PerPerson.ToString("N2") cada uno</b>
+                                <br/><small>(Total final c/propina: $@splitResult.TotalWithTip.ToString("N2"))</small>
+                            </div>
                         }
                     }
                 </div>
@@ -190,13 +242,17 @@
         }
         else
         {
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <div class="text-center py-6">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Cargando comanda de la mesa...</MudText>
+            </div>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="CerrarDialogo">Volver</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="CobrarMesa" Size="Size.Large" Disabled="_cobrando">
-            @(_cobrando ? "Procesando..." : "COBRAR Y LIBERAR")
+        <MudButton Variant="Variant.Outlined" OnClick="CerrarDialogo">Volver</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="CobrarMesa" Size="Size.Medium" Disabled="_cobrando"
+                   StartIcon="@Icons.Material.Filled.CheckCircle">
+            @(_cobrando ? "Procesando cobro..." : "Cobrar y Liberar Mesa")
         </MudButton>
     </DialogActions>
 </MudDialog>

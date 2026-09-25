@@ -11,19 +11,20 @@
              FeatureName="Reportes Avanzados y Rentabilidad"
              Description="Analizá el margen de contribución real por plato, comparativa de crecimiento contra periodos anteriores, desglose de ventas por canal comercial y exportación de datos en CSV.">
 
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Reportes Avanzados</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Métricas de rentabilidad, CMV, comparativa entre periodos y canales.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Reportes Avanzados y Rentabilidad</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Métricas de rentabilidad real por plato, comparativas históricas contra períodos anteriores y desglose por canal de venta.</MudText>
         </div>
-        <div class="d-flex gap-2">
-            <MudSelect T="int" @bind-Value="selectedDays" Label="Periodo" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 140px;" SelectedValuesChanged="OnPeriodChanged">
+        <div class="d-flex gap-2 align-center">
+            <MudSelect T="int" @bind-Value="selectedDays" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width: 150px;" SelectedValuesChanged="OnPeriodChanged" AnchorOrigin="Origin.BottomCenter">
                 <MudSelectItem Value="7">Últimos 7 días</MudSelectItem>
                 <MudSelectItem Value="15">Últimos 15 días</MudSelectItem>
                 <MudSelectItem Value="30">Últimos 30 días</MudSelectItem>
                 <MudSelectItem Value="90">Últimos 90 días</MudSelectItem>
             </MudSelect>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv" Size="Size.Small">
                 Exportar CSV
             </MudButton>
         </div>
@@ -38,139 +39,196 @@
         <!-- Growth & Period Comparison Cards -->
         @if (periodData != null)
         {
-            <MudText Typo="Typo.h6" Class="mb-3 font-weight-bold">Comparativa contra el Periodo Anterior (@selectedDays días previos)</MudText>
-            <MudGrid Class="mb-6">
-                <MudItem xs="12" sm="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">VENTAS TOTALES (FACTURACIÓN)</MudText>
-                        <MudText Typo="Typo.h5" Class="font-weight-bold">$@periodData.Current.TotalSales.ToString("N2")</MudText>
-                        <div class="d-flex align-center mt-2">
-                            @if (periodData.Growth.SalesPercentage >= 0)
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Success"><b>+@periodData.Growth.SalesPercentage%</b> vs periodo anterior</MudText>
-                            }
-                            else
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Error"><b>@periodData.Growth.SalesPercentage%</b> vs periodo anterior</MudText>
-                            }
-                        </div>
-                    </MudCard>
-                </MudItem>
+            <div class="mb-6">
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Comparativa contra Período Anterior (@selectedDays días previos)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Evolución de ventas, tickets y pedidos</MudText>
+                </div>
 
-                <MudItem xs="12" sm="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">CANTIDAD DE PEDIDOS</MudText>
-                        <MudText Typo="Typo.h5" Class="font-weight-bold">@periodData.Current.OrdersCount comandas</MudText>
-                        <div class="d-flex align-center mt-2">
-                            @if (periodData.Growth.OrdersPercentage >= 0)
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Success"><b>+@periodData.Growth.OrdersPercentage%</b></MudText>
-                            }
-                            else
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Error"><b>@periodData.Growth.OrdersPercentage%</b></MudText>
-                            }
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-1">(Previo: @periodData.Previous.OrdersCount)</MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="4">
+                        <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                            <div>
+                                <div class="d-flex justify-space-between align-start mb-2">
+                                    <span class="saas-kpi-label">Facturación Total</span>
+                                    <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-success-bg); color: var(--saas-success-text);">
+                                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                                    </div>
+                                </div>
+                                <div class="saas-kpi-value">$@periodData.Current.TotalSales.ToString("N2")</div>
+                            </div>
+                            <div class="mt-2">
+                                @if (periodData.Growth.SalesPercentage >= 0)
+                                {
+                                    <span class="saas-badge saas-badge-success">
+                                        ↑ +@periodData.Growth.SalesPercentage% vs previo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="saas-badge saas-badge-error">
+                                        ↓ @periodData.Growth.SalesPercentage% vs previo
+                                    </span>
+                                }
+                            </div>
                         </div>
-                    </MudCard>
-                </MudItem>
+                    </MudItem>
 
-                <MudItem xs="12" sm="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">TICKET PROMEDIO</MudText>
-                        <MudText Typo="Typo.h5" Class="font-weight-bold">$@periodData.Current.AverageTicket.ToString("N2")</MudText>
-                        <div class="d-flex align-center mt-2">
-                            @if (periodData.Growth.AverageTicketPercentage >= 0)
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Success"><b>+@periodData.Growth.AverageTicketPercentage%</b></MudText>
-                            }
-                            else
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" Class="mr-1" />
-                                <MudText Typo="Typo.body2" Color="Color.Error"><b>@periodData.Growth.AverageTicketPercentage%</b></MudText>
-                            }
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-1">(Previo: $@periodData.Previous.AverageTicket.ToString("N2"))</MudText>
+                    <MudItem xs="12" sm="4">
+                        <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                            <div>
+                                <div class="d-flex justify-space-between align-start mb-2">
+                                    <span class="saas-kpi-label">Volumen de Pedidos</span>
+                                    <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-info-bg); color: var(--saas-info-text);">
+                                        <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" />
+                                    </div>
+                                </div>
+                                <div class="saas-kpi-value">@periodData.Current.OrdersCount</div>
+                            </div>
+                            <div class="mt-2 d-flex align-center gap-2">
+                                @if (periodData.Growth.OrdersPercentage >= 0)
+                                {
+                                    <span class="saas-badge saas-badge-success">
+                                        ↑ +@periodData.Growth.OrdersPercentage%
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="saas-badge saas-badge-error">
+                                        ↓ @periodData.Growth.OrdersPercentage%
+                                    </span>
+                                }
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary);">(Previo: @periodData.Previous.OrdersCount)</span>
+                            </div>
                         </div>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                            <div>
+                                <div class="d-flex justify-space-between align-start mb-2">
+                                    <span class="saas-kpi-label">Ticket Promedio</span>
+                                    <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-warning-bg); color: var(--saas-warning-text);">
+                                        <MudIcon Icon="@Icons.Material.Filled.PriceCheck" Size="Size.Small" />
+                                    </div>
+                                </div>
+                                <div class="saas-kpi-value">$@periodData.Current.AverageTicket.ToString("N2")</div>
+                            </div>
+                            <div class="mt-2 d-flex align-center gap-2">
+                                @if (periodData.Growth.AverageTicketPercentage >= 0)
+                                {
+                                    <span class="saas-badge saas-badge-success">
+                                        ↑ +@periodData.Growth.AverageTicketPercentage%
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="saas-badge saas-badge-error">
+                                        ↓ @periodData.Growth.AverageTicketPercentage%
+                                    </span>
+                                }
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary);">(Previo: $@periodData.Previous.AverageTicket.ToString("N2"))</span>
+                            </div>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </div>
         }
 
         <!-- Channels Breakdown -->
-        <MudText Typo="Typo.h6" Class="mb-3 font-weight-bold">Rendimiento por Canal Comercial</MudText>
-        <MudGrid Class="mb-6">
-            @foreach (var ch in channels)
-            {
-                <MudItem xs="12" sm="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <div class="d-flex justify-space-between align-center mb-2">
-                            <MudText Typo="Typo.h6">@ch.Channel</MudText>
-                            <MudChip T="string" Color="Color.Primary" Size="Size.Small">@ch.OrdersCount pedidos</MudChip>
-                        </div>
-                        <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold mb-1">$@ch.TotalSales.ToString("N2")</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ticket promedio por venta: $@ch.AverageTicket.ToString("N2")</MudText>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
+        <div class="mb-6">
+            <div class="mb-3">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Rendimiento por Canal Comercial</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Desglose de recaudación entre mostrador, envíos y salón</MudText>
+            </div>
 
-        <!-- Margins and Profitability Table -->
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Class="font-weight-bold">Rentabilidad por Producto (Costeo Escandallo)</MudText>
-            @if (marginsData != null)
-            {
-                <MudChip T="string" Color="Color.Success" Size="Size.Small">Margen Promedio Catálogo: @marginsData.Summary.AvgMarginPercentage%</MudChip>
-            }
+            <MudGrid Spacing="3">
+                @foreach (var ch in channels)
+                {
+                    <MudItem xs="12" sm="4">
+                        <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                            <div>
+                                <div class="d-flex justify-space-between align-center mb-2">
+                                    <span style="font-weight: 700; color: var(--saas-text-primary); font-size: 1rem;">@ch.Channel</span>
+                                    <span class="saas-badge saas-badge-neutral">@ch.OrdersCount pedidos</span>
+                                </div>
+                                <div class="saas-kpi-value">$@ch.TotalSales.ToString("N2")</div>
+                            </div>
+                            <div class="saas-kpi-subtext">
+                                Promedio por comanda: <b>$@ch.AverageTicket.ToString("N2")</b>
+                            </div>
+                        </div>
+                    </MudItem>
+                }
+            </MudGrid>
         </div>
 
-        @if (marginsData == null || !marginsData.Items.Any())
-        {
-            <MudPaper Class="pa-4 text-center">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">No hay productos registrados para costeo.</MudText>
-            </MudPaper>
-        }
-        else
-        {
-            <MudTable Items="@marginsData.Items" Dense="true" Hover="true" Striped="true" Elevation="2">
-                <HeaderContent>
-                    <MudTh>Producto</MudTh>
-                    <MudTh>Categoría</MudTh>
-                    <MudTh Style="text-align: right;">Precio Venta</MudTh>
-                    <MudTh Style="text-align: right;">Costo Ingredientes</MudTh>
-                    <MudTh Style="text-align: right;">Ganancia Bruta</MudTh>
-                    <MudTh Style="text-align: right;">% Margen</MudTh>
-                    <MudTh Style="text-align: center;">Ficha Técnica</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd><b>@context.ProductName</b></MudTd>
-                    <MudTd>@context.CategoryName</MudTd>
-                    <MudTd Style="text-align: right; font-weight: bold;">$@context.Price.ToString("N2")</MudTd>
-                    <MudTd Style="text-align: right; color: var(--mud-palette-error);">$@context.EstimatedCost.ToString("N2")</MudTd>
-                    <MudTd Style="text-align: right; font-weight: bold; color: var(--mud-palette-success);">$@context.EstimatedProfit.ToString("N2")</MudTd>
-                    <MudTd Style="text-align: right;">
-                        <span style="font-weight: bold; color: @(context.MarginPercentage >= 60 ? "green" : (context.MarginPercentage >= 40 ? "orange" : "red"));">
-                            @context.MarginPercentage%
-                        </span>
-                    </MudTd>
-                    <MudTd Style="text-align: center;">
-                        @if (context.HasRecipe)
-                        {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined">Receta Activa</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Sin Receta</MudChip>
-                        }
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
+        <!-- Margins and Profitability Table -->
+        <div class="mb-6">
+            <div class="d-flex flex-wrap justify-space-between align-center mb-3 gap-2">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Rentabilidad y Costeo por Producto (CMV)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Margen bruto unitario calculado a partir de las fichas técnicas</MudText>
+                </div>
+                @if (marginsData != null)
+                {
+                    <span class="saas-badge saas-badge-success" style="font-size: 0.8125rem;">
+                        Margen Promedio Catálogo: @marginsData.Summary.AvgMarginPercentage%
+                    </span>
+                }
+            </div>
+
+            @if (marginsData == null || !marginsData.Items.Any())
+            {
+                <div class="mud-paper pa-8 text-center text-muted">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No hay productos registrados para costeo.</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="mud-paper overflow-hidden">
+                    <MudTable Items="@marginsData.Items" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Producto</MudTh>
+                            <MudTh>Categoría</MudTh>
+                            <MudTh Style="text-align: right;">Precio Venta</MudTh>
+                            <MudTh Style="text-align: right;">Costo Insumos</MudTh>
+                            <MudTh Style="text-align: right;">Ganancia Bruta</MudTh>
+                            <MudTh Style="text-align: right;">% Margen</MudTh>
+                            <MudTh Style="text-align: center;">Ficha Técnica</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <span style="font-weight: 600; color: var(--saas-text-primary);">@context.ProductName</span>
+                            </MudTd>
+                            <MudTd>
+                                <span class="saas-badge saas-badge-neutral">@context.CategoryName</span>
+                            </MudTd>
+                            <MudTd Style="text-align: right; font-weight: 700; color: var(--saas-text-primary);">$@context.Price.ToString("N2")</MudTd>
+                            <MudTd Style="text-align: right; color: var(--saas-error-text); font-weight: 600;">$@context.EstimatedCost.ToString("N2")</MudTd>
+                            <MudTd Style="text-align: right; font-weight: 700; color: var(--saas-success-text);">$@context.EstimatedProfit.ToString("N2")</MudTd>
+                            <MudTd Style="text-align: right;">
+                                <span class="saas-badge @(context.MarginPercentage >= 60 ? "saas-badge-success" : (context.MarginPercentage >= 40 ? "saas-badge-warning" : "saas-badge-error"))">
+                                    @context.MarginPercentage%
+                                </span>
+                            </MudTd>
+                            <MudTd Style="text-align: center;">
+                                @if (context.HasRecipe)
+                                {
+                                    <span class="saas-badge saas-badge-success">Receta Activa</span>
+                                }
+                                else
+                                {
+                                    <span class="saas-badge saas-badge-neutral">Sin Receta</span>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            }
+        </div>
     }
+</MudContainer>
 
 </FeatureGate>
 

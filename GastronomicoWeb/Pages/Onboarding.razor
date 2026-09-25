@@ -8,164 +8,195 @@
 <PageTitle>Configuración Inicial - Gastronómico SaaS</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="my-8">
-    <MudPaper Elevation="4" Class="pa-8 rounded-lg">
-        <div class="text-center mb-6">
-            <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" Color="Color.Primary" Style="font-size: 3.5rem;" />
-            <MudText Typo="Typo.h4" Class="mt-2 font-weight-bold">¡Bienvenido a tu nuevo sistema!</MudText>
-            <MudText Typo="Typo.body1" Color="Color.Secondary">Configura tu negocio en solo unos pasos para empezar a vender.</MudText>
+    <MudCard Elevation="0" Class="pa-8 rounded-xl" Style="border: 1px solid var(--saas-border); background: var(--saas-surface); box-shadow: var(--saas-shadow-sm);">
+        <div class="text-center mb-8">
+            <div class="mx-auto mb-3" style="width: 52px; height: 52px; border-radius: 14px; background: var(--saas-primary); display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" Style="color: var(--saas-primary-text); font-size: 26px;" />
+            </div>
+            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">¡Bienvenido a tu nuevo sistema!</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mt-1">Configurá tu negocio en solo unos pasos para empezar a operar y vender.</MudText>
         </div>
 
-        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" ActivePanelIndex="@activeStep"
-                 Color="Color.Primary">
+        <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" ActivePanelIndex="@activeStep"
+                 Color="Color.Primary" Class="saas-onboarding-tabs">
 
             @* PASO 1: DATOS DEL NEGOCIO *@
-            <MudTabPanel Text="1. Perfil del Negocio" Icon="@Icons.Material.Filled.Store">
-                <MudText Typo="Typo.h6" Class="mb-4">Información básica y zona horaria</MudText>
-                <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="businessModel.TradeName" Label="Nombre de Fantasía" Variant="Variant.Outlined" Required="true" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="businessModel.Phone" Label="Teléfono de Contacto" Variant="Variant.Outlined" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="businessModel.Address" Label="Dirección del Local" Variant="Variant.Outlined" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="string" @bind-Value="businessModel.TimeZoneId" Label="Zona Horaria" Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("America/Argentina/Buenos_Aires")">Argentina (UTC-3)</MudSelectItem>
-                            <MudSelectItem Value="@("America/Santiago")">Chile (UTC-3/UTC-4)</MudSelectItem>
-                            <MudSelectItem Value="@("America/Montevideo")">Uruguay (UTC-3)</MudSelectItem>
-                            <MudSelectItem Value="@("America/Lima")">Perú / Colombia (UTC-5)</MudSelectItem>
-                            <MudSelectItem Value="@("America/Mexico_City")">México (UTC-6)</MudSelectItem>
-                            <MudSelectItem Value="@("America/Madrid")">España (UTC+1/UTC+2)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudSwitch @bind-Value="businessModel.TablesEnabled" Label="Habilitar gestión de Mesas y Salón" Color="Color.Primary" />
-                    </MudItem>
-                </MudGrid>
+            <MudTabPanel Text="1. Perfil del Negocio" Icon="@Icons.Material.Outlined.Store">
+                <div class="pt-4">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-1" Style="color: var(--saas-text-primary);">Información básica y localización</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mb-5">Configurá la identidad de tu local y su huso horario para turnos y arqueos.</MudText>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="businessModel.TradeName" Label="Nombre de Fantasía" Variant="Variant.Outlined" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="businessModel.Phone" Label="Teléfono de Contacto" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="businessModel.Address" Label="Dirección del Local" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string" @bind-Value="businessModel.TimeZoneId" Label="Zona Horaria" Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("America/Argentina/Buenos_Aires")">Argentina (UTC-3)</MudSelectItem>
+                                <MudSelectItem Value="@("America/Santiago")">Chile (UTC-3/UTC-4)</MudSelectItem>
+                                <MudSelectItem Value="@("America/Montevideo")">Uruguay (UTC-3)</MudSelectItem>
+                                <MudSelectItem Value="@("America/Lima")">Perú / Colombia (UTC-5)</MudSelectItem>
+                                <MudSelectItem Value="@("America/Mexico_City")">México (UTC-6)</MudSelectItem>
+                                <MudSelectItem Value="@("America/Madrid")">España (UTC+1/UTC+2)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <div class="pa-3 rounded-lg" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                                <MudSwitch @bind-Value="businessModel.TablesEnabled" Label="Habilitar módulo de Mesas y Salón (Turnos y Comandas)" Color="Color.Primary" />
+                            </div>
+                        </MudItem>
+                    </MudGrid>
 
-                <div class="d-flex justify-end mt-6">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBusinessProfile" EndIcon="@Icons.Material.Filled.ArrowForward">
-                        Continuar a Categorías
-                    </MudButton>
+                    <div class="d-flex justify-end mt-8">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBusinessProfile" EndIcon="@Icons.Material.Filled.ArrowForward" Class="rounded-lg px-6 py-2 font-weight-bold">
+                            Continuar a Categorías
+                        </MudButton>
+                    </div>
                 </div>
             </MudTabPanel>
 
             @* PASO 2: CATEGORÍAS *@
-            <MudTabPanel Text="2. Categorías" Icon="@Icons.Material.Filled.Category">
-                <MudText Typo="Typo.h6" Class="mb-4">Categorías para organizar tu menú</MudText>
-                
-                <div class="d-flex gap-2 mb-4">
-                    <MudTextField @bind-Value="newCategoryName" Label="Nueva Categoría (Ej: Postres, Promos)" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                    <MudCheckBox @bind-Value="newCategoryTracksStock" Label="Controla Stock" Color="Color.Primary" T="bool" />
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCategory" Disabled="@string.IsNullOrWhiteSpace(newCategoryName)">
-                        Agregar
-                    </MudButton>
-                </div>
-
-                <MudList T="string" Dense="true" Class="mb-6">
-                    @foreach (var cat in categories)
-                    {
-                        <MudListItem T="string">
-                            <div class="d-flex justify-space-between align-center">
-                                <span><b>@cat.Name</b> @(cat.TracksStock ? "(Control de Stock)" : "")</span>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Activa</MudChip>
+            <MudTabPanel Text="2. Categorías" Icon="@Icons.Material.Outlined.Category">
+                <div class="pt-4">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-1" Style="color: var(--saas-text-primary);">Categorías de Carta</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mb-5">Organizá tu menú en grupos claros para agilizar la toma de pedidos.</MudText>
+                    
+                    <div class="pa-4 rounded-xl mb-6" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                        <div class="d-flex flex-wrap align-center gap-3">
+                            <div class="flex-grow-1">
+                                <MudTextField @bind-Value="newCategoryName" Label="Nueva Categoría (Ej: Pizzas, Bebidas, Promos)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </div>
-                        </MudListItem>
-                    }
-                </MudList>
+                            <MudCheckBox @bind-Value="newCategoryTracksStock" Label="Controla Stock" Color="Color.Primary" T="bool" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddCategory" Disabled="@string.IsNullOrWhiteSpace(newCategoryName)" Class="rounded-lg px-5">
+                                Agregar
+                            </MudButton>
+                        </div>
+                    </div>
 
-                <div class="d-flex justify-space-between mt-6">
-                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 0)">Atrás</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 2)" EndIcon="@Icons.Material.Filled.ArrowForward">
-                        Continuar a Productos
-                    </MudButton>
+                    @if (categories.Any())
+                    {
+                        <div class="d-flex flex-column gap-2 mb-6">
+                            @foreach (var cat in categories)
+                            {
+                                <div class="d-flex justify-space-between align-center pa-3 rounded-lg" style="background: var(--saas-surface); border: 1px solid var(--saas-border);">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Folder" Size="Size.Small" Style="color: var(--saas-text-secondary);" />
+                                        <span class="font-weight-bold" style="color: var(--saas-text-primary);">@cat.Name</span>
+                                        @if (cat.TracksStock)
+                                        {
+                                            <span class="saas-badge saas-badge-neutral" style="font-size: 0.7rem;">Stock Activo</span>
+                                        }
+                                    </div>
+                                    <span class="saas-badge saas-badge-success">Activa</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="d-flex justify-space-between mt-8">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => activeStep = 0)" Class="rounded-lg">Atrás</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 2)" EndIcon="@Icons.Material.Filled.ArrowForward" Class="rounded-lg px-6 font-weight-bold">
+                            Continuar a Productos
+                        </MudButton>
+                    </div>
                 </div>
             </MudTabPanel>
 
             @* PASO 3: PRODUCTOS *@
-            <MudTabPanel Text="3. Primeros Productos" Icon="@Icons.Material.Filled.Fastfood">
-                <MudText Typo="Typo.h6" Class="mb-4">Agregá tus primeros productos para vender</MudText>
+            <MudTabPanel Text="3. Productos" Icon="@Icons.Material.Outlined.Fastfood">
+                <div class="pt-4">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-1" Style="color: var(--saas-text-primary);">Primeros Productos</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mb-5">Cargá algunos artículos iniciales para verificar el Punto de Venta.</MudText>
 
-                <MudPaper Elevation="1" Class="pa-4 mb-4" Style="background-color: rgba(255,255,255,0.03);">
-                    <MudGrid>
-                        <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="newProduct.Name" Label="Nombre (Ej: Empanada Carne)" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudNumericField @bind-Value="newProduct.Price" Label="Precio ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudSelect T="int?" @bind-Value="newProduct.CategoryId" Label="Categoría" Variant="Variant.Outlined" Margin="Margin.Dense">
-                                @foreach (var c in categories)
-                                {
-                                    <MudSelectItem T="int?" Value="@c.Id">@c.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
-                        <MudItem xs="12" sm="2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="AddProduct"
-                                       Disabled="@(string.IsNullOrWhiteSpace(newProduct.Name) || newProduct.Price <= 0)">
-                                Cargar
-                            </MudButton>
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
+                    <div class="pa-4 rounded-xl mb-6" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                        <MudGrid>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="newProduct.Name" Label="Nombre (Ej: Empanada Carne)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudNumericField @bind-Value="newProduct.Price" Label="Precio ($)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudSelect T="int?" @bind-Value="newProduct.CategoryId" Label="Categoría" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                    @foreach (var c in categories)
+                                    {
+                                        <MudSelectItem T="int?" Value="@c.Id">@c.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="2" Class="d-flex align-center">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="AddProduct"
+                                           Disabled="@(string.IsNullOrWhiteSpace(newProduct.Name) || newProduct.Price <= 0)" Class="rounded-lg">
+                                    Cargar
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </div>
 
-                @if (products.Any())
-                {
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Productos cargados (@products.Count):</MudText>
-                    <MudList T="string" Dense="true">
-                        @foreach (var p in products)
-                        {
-                            <MudListItem T="string">
-                                <div class="d-flex justify-space-between">
-                                    <span>@p.Name</span>
-                                    <b>$@p.Price</b>
+                    @if (products.Any())
+                    {
+                        <MudText Typo="Typo.caption" Class="font-weight-bold d-block mb-2" Style="color: var(--saas-text-secondary); letter-spacing: 0.05em; text-transform: uppercase;">
+                            Productos cargados (@products.Count)
+                        </MudText>
+                        <div class="d-flex flex-column gap-2 mb-6">
+                            @foreach (var p in products)
+                            {
+                                <div class="d-flex justify-space-between align-center pa-3 rounded-lg" style="background: var(--saas-surface); border: 1px solid var(--saas-border);">
+                                    <span style="color: var(--saas-text-primary); font-weight: 500;">@p.Name</span>
+                                    <span class="font-weight-bold" style="color: var(--saas-text-primary);">$@p.Price.ToString("N0")</span>
                                 </div>
-                            </MudListItem>
-                        }
-                    </MudList>
-                }
+                            }
+                        </div>
+                    }
 
-                <div class="d-flex justify-space-between mt-6">
-                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 1)">Atrás</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 3)" EndIcon="@Icons.Material.Filled.ArrowForward">
-                        Continuar a Mesas
-                    </MudButton>
+                    <div class="d-flex justify-space-between mt-8">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => activeStep = 1)" Class="rounded-lg">Atrás</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => activeStep = 3)" EndIcon="@Icons.Material.Filled.ArrowForward" Class="rounded-lg px-6 font-weight-bold">
+                            Continuar a Mesas
+                        </MudButton>
+                    </div>
                 </div>
             </MudTabPanel>
 
             @* PASO 4: MESAS *@
-            <MudTabPanel Text="4. Mesas y Finalización" Icon="@Icons.Material.Filled.TableRestaurant">
-                <MudText Typo="Typo.h6" Class="mb-2">Generación rápida de mesas para el salón</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Podés generar automáticamente mesas numeradas para tu salón.</MudText>
+            <MudTabPanel Text="4. Mesas y Finalización" Icon="@Icons.Material.Outlined.TableBar">
+                <div class="pt-4">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-1" Style="color: var(--saas-text-primary);">Generación de Mesas</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mb-5">Podés generar automáticamente mesas numeradas para tu salón comedor.</MudText>
 
-                <div class="d-flex align-center gap-4 mb-6">
-                    <MudNumericField @bind-Value="tablesCountToGenerate" Label="Cantidad de mesas iniciales" Variant="Variant.Outlined" Min="1" Max="50" Style="max-width: 250px;" />
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="GenerateTables">
-                        Generar @tablesCountToGenerate Mesas
-                    </MudButton>
-                </div>
+                    <div class="pa-5 rounded-xl mb-6" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                        <div class="d-flex flex-wrap align-center gap-4">
+                            <MudNumericField @bind-Value="tablesCountToGenerate" Label="Cantidad de mesas iniciales" Variant="Variant.Outlined" Min="1" Max="50" Style="max-width: 200px;" />
+                            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="GenerateTables" Class="rounded-lg">
+                                Generar @tablesCountToGenerate Mesas
+                            </MudButton>
+                        </div>
+                    </div>
 
-                @if (existingTables.Any())
-                {
-                    <MudAlert Severity="Severity.Info" Class="mb-4">
-                        Ya tienes @existingTables.Count mesas configuradas en tu local.
-                    </MudAlert>
-                }
+                    @if (existingTables.Any())
+                    {
+                        <div class="pa-4 rounded-xl mb-6" style="background: var(--saas-success-bg); border: 1px solid var(--saas-success-border);">
+                            <MudText Typo="Typo.body2" Style="color: var(--saas-success-text); font-weight: 500;">
+                                ✓ Actualmente tenés <b>@existingTables.Count</b> mesas listas en el plano de salón.
+                            </MudText>
+                        </div>
+                    }
 
-                <div class="d-flex justify-space-between mt-8">
-                    <MudButton Variant="Variant.Outlined" OnClick="@(() => activeStep = 2)">Atrás</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" OnClick="FinalizeOnboarding">
-                        🚀 FINALIZAR Y ENTRAR AL SISTEMA
-                    </MudButton>
+                    <div class="d-flex justify-space-between align-center mt-10 pt-4" style="border-top: 1px solid var(--saas-border-subtle);">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => activeStep = 2)" Class="rounded-lg">Atrás</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="FinalizeOnboarding" Class="rounded-lg px-8 py-3 font-weight-bold">
+                            Finalizar y Entrar al Sistema
+                        </MudButton>
+                    </div>
                 </div>
             </MudTabPanel>
         </MudTabs>
-    </MudPaper>
+    </MudCard>
 </MudContainer>
 
 @code {

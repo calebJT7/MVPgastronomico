@@ -9,47 +9,51 @@
 <PageTitle>Suscripción y Planes - Gastronómico SaaS</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
-    <div class="d-flex justify-space-between align-center mb-4">
+    <div class="d-flex justify-space-between align-center mb-6">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Suscripción y Planes</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Administrá tu plan, límites de capacidad y capacidades contratadas.</MudText>
+            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">Suscripción y Planes</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">Administrá tu suscripción, capacidad operativa y funcionalidades contratadas.</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData" Class="rounded-lg">
             Actualizar
         </MudButton>
     </div>
 
     @if (loading)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4 rounded-lg" />
     }
     else if (subDetails != null)
     {
         var isExpired = subDetails.Status == "Expired" || subDetails.Status == "Suspended" || subDetails.Status == "Cancelled";
-        var chipColor = subDetails.Status == "Active" ? Color.Success : (subDetails.Status == "Trial" ? Color.Info : Color.Error);
+        var statusBadgeClass = subDetails.Status == "Active" ? "saas-badge-success" : (subDetails.Status == "Trial" ? "saas-badge-neutral" : "saas-badge-danger");
 
-        <MudPaper Elevation="3" Class="pa-6 rounded-lg mb-6" Style="@(isExpired ? "border-left: 6px solid #f44336;" : "border-left: 6px solid #4caf50;")">
+        <MudCard Elevation="0" Class="pa-6 rounded-xl mb-8" Style="border: 1px solid var(--saas-border); box-shadow: var(--saas-shadow-sm);">
             <div class="d-flex flex-wrap justify-space-between align-center">
                 <div>
                     <div class="d-flex align-center gap-3">
-                        <MudText Typo="Typo.h5"><b>Plan Actual: @(subDetails.Plan?.Name ?? "Plan Básico")</b></MudText>
-                        <MudChip T="string" Color="@chipColor" Variant="Variant.Filled">@subDetails.Status</MudChip>
+                        <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">
+                            Plan Actual: @(subDetails.Plan?.Name ?? "Plan Básico")
+                        </MudText>
+                        <span class="saas-badge @statusBadgeClass" style="font-weight: 600;">
+                            @subDetails.Status
+                        </span>
                         @if (subDetails.Plan?.Code == "premium")
                         {
-                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WorkspacePremium">
-                                PREMIUM ACTIVO
-                            </MudChip>
+                            <span class="saas-badge saas-badge-warning font-weight-bold">
+                                ★ PREMIUM ACTIVO
+                            </span>
                         }
                     </div>
 
-                    <MudText Typo="Typo.body2" Class="mt-2" Color="Color.Secondary">
+                    <MudText Typo="Typo.body2" Class="mt-2" Style="color: var(--saas-text-secondary);">
                         @if (subDetails.Status == "Trial")
                         {
-                            <span>Período de prueba vigente hasta: <b>@(subDetails.TrialEndsAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
+                            <span>Período de prueba vigente hasta: <b style="color: var(--saas-text-primary);">@(subDetails.TrialEndsAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
                         }
                         else
                         {
-                            <span>Período de facturación vigente hasta: <b>@(subDetails.CurrentPeriodEndUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
+                            <span>Período de facturación vigente hasta: <b style="color: var(--saas-text-primary);">@(subDetails.CurrentPeriodEndUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</b></span>
                         }
                     </MudText>
                 </div>
@@ -57,13 +61,13 @@
                 <div class="d-flex gap-2 mt-4 mt-sm-0">
                     @if (subDetails.Status == "Cancelled" || subDetails.Status == "Suspended" || subDetails.Status == "Expired")
                     {
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ReactivateSubscription">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ReactivateSubscription" Class="rounded-lg font-weight-bold">
                             Reactivar Suscripción
                         </MudButton>
                     }
                     else
                     {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelSubscription">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelSubscription" Class="rounded-lg font-weight-bold">
                             Cancelar Suscripción
                         </MudButton>
                     }
@@ -73,51 +77,70 @@
             <!-- Resource Usage Meters -->
             @if (subDetails.Plan != null && subDetails.Usage != null)
             {
-                <MudDivider Class="my-4" />
-                <MudText Typo="Typo.subtitle2" Class="mb-3 font-weight-bold">Consumo de Capacidad y Recursos del Local</MudText>
+                <MudDivider Class="my-5" Style="border-color: var(--saas-border-subtle);" />
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="font-weight-bold" Style="color: var(--saas-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem;">
+                        Consumo de Capacidad y Recursos
+                    </MudText>
+                </div>
                 <MudGrid>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudCard Elevation="1" Class="pa-3">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">USUARIOS / MOZOS</MudText>
-                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Users</b> / @subDetails.Plan.MaxUsers</MudText>
+                        <div class="pa-4 rounded-xl" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="color: var(--saas-text-secondary); letter-spacing: 0.04em;">USUARIOS / MOZOS</MudText>
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary); font-weight: 600;">@GetProgressValue(subDetails.Usage.Users, subDetails.Plan.MaxUsers)%</span>
+                            </div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">@subDetails.Usage.Users <span style="font-size: 0.875rem; color: var(--saas-text-muted); font-weight: 500;">/ @subDetails.Plan.MaxUsers</span></MudText>
                             <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Users, subDetails.Plan.MaxUsers)"
-                                               Value="@GetProgressValue(subDetails.Usage.Users, subDetails.Plan.MaxUsers)" Class="mt-2" />
-                        </MudCard>
+                                               Value="@GetProgressValue(subDetails.Usage.Users, subDetails.Plan.MaxUsers)" Class="mt-2 rounded-sm" Style="height: 6px;" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudCard Elevation="1" Class="pa-3">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">PRODUCTOS EN MENÚ</MudText>
-                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Products</b> / @subDetails.Plan.MaxProducts</MudText>
+                        <div class="pa-4 rounded-xl" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="color: var(--saas-text-secondary); letter-spacing: 0.04em;">PRODUCTOS EN CARTA</MudText>
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary); font-weight: 600;">@GetProgressValue(subDetails.Usage.Products, subDetails.Plan.MaxProducts)%</span>
+                            </div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">@subDetails.Usage.Products <span style="font-size: 0.875rem; color: var(--saas-text-muted); font-weight: 500;">/ @subDetails.Plan.MaxProducts</span></MudText>
                             <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Products, subDetails.Plan.MaxProducts)"
-                                               Value="@GetProgressValue(subDetails.Usage.Products, subDetails.Plan.MaxProducts)" Class="mt-2" />
-                        </MudCard>
+                                               Value="@GetProgressValue(subDetails.Usage.Products, subDetails.Plan.MaxProducts)" Class="mt-2 rounded-sm" Style="height: 6px;" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudCard Elevation="1" Class="pa-3">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">MESAS DE SALÓN</MudText>
-                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Tables</b> / @subDetails.Plan.MaxTables</MudText>
+                        <div class="pa-4 rounded-xl" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="color: var(--saas-text-secondary); letter-spacing: 0.04em;">MESAS DE SALÓN</MudText>
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary); font-weight: 600;">@GetProgressValue(subDetails.Usage.Tables, subDetails.Plan.MaxTables)%</span>
+                            </div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">@subDetails.Usage.Tables <span style="font-size: 0.875rem; color: var(--saas-text-muted); font-weight: 500;">/ @subDetails.Plan.MaxTables</span></MudText>
                             <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Tables, subDetails.Plan.MaxTables)"
-                                               Value="@GetProgressValue(subDetails.Usage.Tables, subDetails.Plan.MaxTables)" Class="mt-2" />
-                        </MudCard>
+                                               Value="@GetProgressValue(subDetails.Usage.Tables, subDetails.Plan.MaxTables)" Class="mt-2 rounded-sm" Style="height: 6px;" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="3">
-                        <MudCard Elevation="1" Class="pa-3">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">CLIENTES REGISTRADOS</MudText>
-                            <MudText Typo="Typo.h6"><b>@subDetails.Usage.Customers</b> / @subDetails.Plan.MaxCustomers</MudText>
+                        <div class="pa-4 rounded-xl" style="background: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.caption" Class="font-weight-bold" Style="color: var(--saas-text-secondary); letter-spacing: 0.04em;">CLIENTES REGISTRADOS</MudText>
+                                <span style="font-size: 0.75rem; color: var(--saas-text-secondary); font-weight: 600;">@GetProgressValue(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)%</span>
+                            </div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">@subDetails.Usage.Customers <span style="font-size: 0.875rem; color: var(--saas-text-muted); font-weight: 500;">/ @subDetails.Plan.MaxCustomers</span></MudText>
                             <MudProgressLinear Color="@GetProgressColor(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)"
-                                               Value="@GetProgressValue(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)" Class="mt-2" />
-                        </MudCard>
+                                               Value="@GetProgressValue(subDetails.Usage.Customers, subDetails.Plan.MaxCustomers)" Class="mt-2 rounded-sm" Style="height: 6px;" />
+                        </div>
                     </MudItem>
                 </MudGrid>
             }
-        </MudPaper>
+        </MudCard>
     }
 
     <!-- Plans Comparison Grid -->
-    <MudText Typo="Typo.h5" Class="mb-4 font-weight-bold">Comparativa de Planes</MudText>
+    <div class="mb-4">
+        <MudText Typo="Typo.h6" Class="font-weight-bold" Style="color: var(--saas-text-primary);">Comparativa de Planes</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">Elegí el plan que mejor se adapte a la escala de tu gastronomía.</MudText>
+    </div>
 
     <MudGrid>
         @foreach (var plan in plans)
@@ -126,105 +149,152 @@
             var isPremiumCard = plan.Code == "premium";
 
             <MudItem xs="12" md="6">
-                <MudCard Elevation="@(isCurrent ? 6 : 2)"
-                         Class="@(isCurrent ? "border-2 border-solid mud-border-primary" : "")"
-                         Style="@(isPremiumCard ? "background: linear-gradient(180deg, rgba(255,193,7,0.05) 0%, rgba(255,255,255,1) 100%);" : "")">
-                    <MudCardHeader>
+                <MudCard Elevation="0"
+                         Class="rounded-xl d-flex flex-column h-100"
+                         Style="@(isPremiumCard 
+                                    ? "border: 2px solid var(--saas-primary); box-shadow: var(--saas-shadow-md);" 
+                                    : "border: 1px solid var(--saas-border); box-shadow: var(--saas-shadow-xs);")">
+                    <MudCardHeader Class="pb-2">
                         <CardHeaderContent>
                             <div class="d-flex justify-space-between align-center">
                                 <div class="d-flex align-center gap-2">
-                                    <MudText Typo="Typo.h5"><b>@plan.Name</b></MudText>
+                                    <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">@plan.Name</MudText>
                                     @if (isPremiumCard)
                                     {
-                                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="Color.Warning" />
+                                        <span class="saas-badge saas-badge-warning" style="font-size: 0.7rem; font-weight: 700;">
+                                            RECOMENDADO
+                                        </span>
                                     }
                                 </div>
                                 @if (isCurrent)
                                 {
-                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled">ACTUAL</MudChip>
+                                    <span class="saas-badge saas-badge-success" style="font-weight: 700;">
+                                        PLAN ACTUAL
+                                    </span>
                                 }
                             </div>
-                            <MudText Typo="Typo.h4" Color="Color.Primary" Class="mt-2">
+                            <div class="mt-3 mb-1">
                                 @if (plan.MonthlyPrice > 0)
                                 {
-                                    <span>$@plan.MonthlyPrice.ToString("N0") <MudText Typo="Typo.caption">/ mes (@plan.Currency)</MudText></span>
+                                    <div class="d-flex align-baseline gap-1">
+                                        <span style="font-size: 2rem; font-weight: 800; color: var(--saas-text-primary); letter-spacing: -0.03em;">$@plan.MonthlyPrice.ToString("N0")</span>
+                                        <span style="color: var(--saas-text-secondary); font-size: 0.875rem;">/ mes (@plan.Currency)</span>
+                                    </div>
                                 }
                                 else
                                 {
-                                    <span>Gratis / $0</span>
+                                    <span style="font-size: 2rem; font-weight: 800; color: var(--saas-text-primary); letter-spacing: -0.03em;">Gratis</span>
                                 }
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@plan.Description</MudText>
+                            </div>
+                            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">@plan.Description</MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
 
-                    <MudCardContent>
-                        <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-bold">Límites de Capacidad:</MudText>
-                        <MudList T="string" Dense="true" Class="mb-3">
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.People">Hasta <b>@plan.MaxUsers</b> usuarios / mozos simultáneos</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.MenuBook">Hasta <b>@plan.MaxProducts</b> productos en carta</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.TableBar">Hasta <b>@plan.MaxTables</b> mesas en salón</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Badge">Hasta <b>@plan.MaxCustomers</b> clientes en cartera</MudListItem>
-                        </MudList>
+                    <MudCardContent Class="pt-2 flex-grow-1">
+                        <MudText Typo="Typo.caption" Class="font-weight-bold d-block mb-3" Style="color: var(--saas-text-secondary); letter-spacing: 0.05em; text-transform: uppercase;">
+                            Límites de Capacidad
+                        </MudText>
+                        <div class="d-flex flex-column gap-2 mb-4" style="font-size: 0.875rem; color: var(--saas-text-primary);">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Style="color: var(--saas-text-secondary);" />
+                                <span>Hasta <b>@plan.MaxUsers</b> usuarios simultáneos</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small" Style="color: var(--saas-text-secondary);" />
+                                <span>Hasta <b>@plan.MaxProducts</b> productos en carta</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.TableBar" Size="Size.Small" Style="color: var(--saas-text-secondary);" />
+                                <span>Hasta <b>@plan.MaxTables</b> mesas de salón</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Style="color: var(--saas-text-secondary);" />
+                                <span>Hasta <b>@plan.MaxCustomers</b> clientes en cartera</span>
+                            </div>
+                        </div>
 
-                        <MudDivider Class="my-2" />
-                        <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-bold">Módulos y Funcionalidades:</MudText>
+                        <MudDivider Class="my-3" Style="border-color: var(--saas-border-subtle);" />
+                        <MudText Typo="Typo.caption" Class="font-weight-bold d-block mb-3" Style="color: var(--saas-text-secondary); letter-spacing: 0.05em; text-transform: uppercase;">
+                            Módulos y Funcionalidades
+                        </MudText>
 
-                        <MudList T="string" Dense="true">
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Ventas por mostrador y delivery</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Mapa de mesas y comandas de salón</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Caja, arqueo y turnos de cajero</MudListItem>
-                            <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">Clientes, cuentas corrientes y fiados</MudListItem>
+                        <div class="d-flex flex-column gap-2" style="font-size: 0.875rem; color: var(--saas-text-primary);">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color: #10b981;" />
+                                <span>Ventas por mostrador y delivery</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color: #10b981;" />
+                                <span>Mapa de mesas y comandas de salón</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color: #10b981;" />
+                                <span>Caja, arqueo y turnos de cajero</span>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color: #10b981;" />
+                                <span>Clientes, cuentas corrientes y fiados</span>
+                            </div>
                             
                             @if (isPremiumCard)
                             {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
                                     <b>Control de insumos, compras y mermas</b>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
-                                    <b>Fichas técnicas, recetas y descuento automático</b>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
+                                    <b>Fichas técnicas, recetas y costeo automático</b>
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
                                     <b>Monitor KDS de cocina en vivo con SignalR</b>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
                                     <b>Libro de reservas de salón y comensales</b>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
                                     <b>División de cuentas (split bills) y propinas</b>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Warning">
-                                    <b>Reportes avanzados: CMV, márgenes y exportación CSV</b>
-                                </MudListItem>
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Style="color: var(--saas-primary);" />
+                                    <b>Reportes avanzados: CMV, márgenes y exportación</b>
+                                </div>
                             }
                             else
                             {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
-                                    <span style="opacity: 0.6;">Sin insumos ni recetas avanzadas</span>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
-                                    <span style="opacity: 0.6;">Sin monitor de cocina KDS</span>
-                                </MudListItem>
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.Close" IconColor="Color.Default">
-                                    <span style="opacity: 0.6;">Sin división de cuentas ni reservas</span>
-                                </MudListItem>
+                                <div class="d-flex align-center gap-2" style="color: #94a3b8;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" Style="color: #cbd5e1;" />
+                                    <span>Sin insumos ni recetas avanzadas</span>
+                                </div>
+                                <div class="d-flex align-center gap-2" style="color: #94a3b8;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" Style="color: #cbd5e1;" />
+                                    <span>Sin monitor de cocina KDS</span>
+                                </div>
+                                <div class="d-flex align-center gap-2" style="color: #94a3b8;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" Style="color: #cbd5e1;" />
+                                    <span>Sin división de cuentas ni reservas</span>
+                                </div>
                             }
-                        </MudList>
+                        </div>
                     </MudCardContent>
 
-                    <MudCardActions Class="pa-4">
+                    <MudCardActions Class="pa-6 pt-0">
                         @if (isCurrent)
                         {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Disabled="true">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Disabled="true" Class="rounded-lg py-2">
                                 Plan Actual en Uso
                             </MudButton>
                         }
                         else
                         {
                             <MudButton Variant="Variant.Filled"
-                                       Color="@(isPremiumCard ? Color.Warning : Color.Primary)"
+                                       Color="Color.Primary"
                                        FullWidth="true"
                                        Size="Size.Large"
+                                       Class="rounded-lg py-2 font-weight-bold"
                                        StartIcon="@(isPremiumCard ? Icons.Material.Filled.WorkspacePremium : Icons.Material.Filled.SwapHoriz)"
                                        OnClick="@(() => SwitchPlanAsync(plan.Code))"
                                        Disabled="switching">

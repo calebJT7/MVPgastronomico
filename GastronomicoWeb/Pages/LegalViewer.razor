@@ -6,44 +6,51 @@
 
 <PageTitle>Documentación Legal - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="my-6">
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-8">
+    <div class="d-flex justify-space-between align-center mb-6">
         <div>
-            <MudText Typo="Typo.h4">Términos y Condiciones Legales</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Marco contractual y políticas de uso de la plataforma</MudText>
+            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">Términos y Condiciones Legales</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">Marco contractual y políticas de privacidad de la plataforma</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo("/"))">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/"))" Class="rounded-lg">
             Volver al Sistema
         </MudButton>
     </div>
 
     @if (_loading)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4 rounded-lg" />
     }
     else if (_documents.Count == 0)
     {
-        <MudAlert Severity="Severity.Info">No hay documentos legales publicados actualmente.</MudAlert>
+        <MudCard Elevation="0" Class="pa-6 rounded-xl text-center" Style="border: 1px solid var(--saas-border); background: var(--saas-surface);">
+            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">No hay documentos legales publicados actualmente.</MudText>
+        </MudCard>
     }
     else
     {
-        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
-            @foreach (var doc in _documents)
-            {
-                <MudTabPanel Text="@doc.Title" Icon="@Icons.Material.Filled.Gavel">
-                    <div class="d-flex justify-space-between align-center mb-3">
-                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Versión: @doc.Version</MudChip>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Vigente desde: @doc.EffectiveAtUtc.ToLocalTime().ToString("dd/MM/yyyy")
-                        </MudText>
-                    </div>
-                    <MudDivider Class="mb-4" />
-                    <div style="white-space: pre-line; line-height: 1.6; font-size: 0.95rem;">
-                        @doc.Body
-                    </div>
-                </MudTabPanel>
-            }
-        </MudTabs>
+        <MudCard Elevation="0" Class="pa-6 rounded-xl" Style="border: 1px solid var(--saas-border); background: var(--saas-surface); box-shadow: var(--saas-shadow-sm);">
+            <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" Color="Color.Primary">
+                @foreach (var doc in _documents)
+                {
+                    <MudTabPanel Text="@doc.Title" Icon="@Icons.Material.Outlined.Gavel">
+                        <div class="pt-4">
+                            <div class="d-flex justify-space-between align-center mb-4 pb-3" style="border-bottom: 1px solid var(--saas-border-subtle);">
+                                <span class="saas-badge saas-badge-neutral" style="font-weight: 600;">
+                                    Versión: @doc.Version
+                                </span>
+                                <MudText Typo="Typo.caption" Style="color: var(--saas-text-muted);">
+                                    Vigente desde: @doc.EffectiveAtUtc.ToLocalTime().ToString("dd/MM/yyyy")
+                                </MudText>
+                            </div>
+                            <div style="white-space: pre-line; line-height: 1.7; font-size: 0.95rem; color: var(--saas-text-primary); font-family: var(--mud-typography-default-family);">
+                                @doc.Body
+                            </div>
+                        </div>
+                    </MudTabPanel>
+                }
+            </MudTabs>
+        </MudCard>
     }
 </MudContainer>
 

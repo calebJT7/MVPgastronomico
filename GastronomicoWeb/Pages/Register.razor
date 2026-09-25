@@ -9,33 +9,35 @@
 
 <PageTitle>Registrar Negocio - Gastronómico SaaS</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center my-8">
-    <MudPaper Elevation="6" Class="pa-8 rounded-lg w-100" Style="background-color: var(--mud-palette-surface);">
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-flex align-center justify-center py-10" Style="min-height: 85vh;">
+    <MudCard Elevation="0" Class="pa-8 w-100" Style="border: 1px solid var(--saas-border); border-radius: 16px; background: var(--saas-surface); box-shadow: var(--saas-shadow-sm);">
         <div class="text-center mb-6">
-            <MudIcon Icon="@Icons.Material.Filled.Storefront" Color="Color.Primary" Style="font-size: 3rem;" />
-            <MudText Typo="Typo.h4" Class="mt-2 font-weight-bold">Crear Cuenta de Negocio</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Comenzá tu prueba gratuita de 14 días con acceso total</MudText>
+            <div class="mx-auto mb-3" style="width: 48px; height: 48px; border-radius: 12px; background: var(--saas-primary); display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Storefront" Style="color: var(--saas-primary-text); font-size: 24px;" />
+            </div>
+            <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">Crear Cuenta de Negocio</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);" Class="mt-1">14 días de prueba gratuita con acceso total</MudText>
         </div>
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@errorMessage</MudAlert>
+            <MudAlert Severity="Severity.Error" Class="mb-4 rounded-lg" Dense="true">@errorMessage</MudAlert>
         }
 
         <EditForm Model="@model" OnValidSubmit="HandleRegister">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="model.BusinessName" Label="Nombre del Negocio (Ej: Pizzería Napoli)"
+            <MudTextField @bind-Value="model.BusinessName" Label="Nombre del Local / Negocio"
                           Variant="Variant.Outlined" Required="true" RequiredError="El nombre del negocio es obligatorio"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Store" Class="mb-3" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Store" Class="mb-3" />
 
             <MudTextField @bind-Value="model.FullName" Label="Tu Nombre Completo" Variant="Variant.Outlined"
                           Required="true" RequiredError="Tu nombre es obligatorio"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" Class="mb-3" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Person" Class="mb-3" />
 
             <MudTextField @bind-Value="model.Email" Label="Correo Electrónico" Variant="Variant.Outlined"
                           InputType="InputType.Email" Required="true" RequiredError="El email es obligatorio"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" Class="mb-3" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Email" Class="mb-3" />
 
             <MudTextField @bind-Value="model.Password" Label="Contraseña (mínimo 8 caracteres)" Variant="Variant.Outlined"
                           InputType="@(showPassword ? InputType.Text : InputType.Password)" Required="true"
@@ -44,15 +46,17 @@
                           OnAdornmentClick="@(() => showPassword = !showPassword)" Class="mb-4" />
 
             <MudCheckBox @bind-Value="model.AcceptLegal" Color="Color.Primary" Class="mb-4" T="bool">
-                Acepto los <MudLink Href="/legal" Target="_blank" Color="Color.Primary">Términos y Condiciones del Servicio</MudLink> y la Política de Privacidad.
+                <span style="font-size: 0.85rem; color: var(--saas-text-secondary);">
+                    Acepto los <MudLink Href="/legal" Target="_blank" Style="color: var(--saas-text-primary); font-weight: 600;">Términos del Servicio</MudLink> y Privacidad.
+                </span>
             </MudCheckBox>
 
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
-                       FullWidth="true" Size="Size.Large" Disabled="@(isSubmitting || !model.AcceptLegal)">
+                       FullWidth="true" Size="Size.Large" Class="rounded-lg py-3 font-weight-bold" Disabled="@(isSubmitting || !model.AcceptLegal)">
                 @if (isSubmitting)
                 {
                     <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Creando negocio y configurando entorno...</MudText>
+                    <MudText Class="ms-2">Creando entorno...</MudText>
                 }
                 else
                 {
@@ -61,12 +65,12 @@
             </MudButton>
 
             <div class="text-center mt-6">
-                <MudText Typo="Typo.body2">
-                    ¿Ya tenés una cuenta? <MudLink Href="/login" Color="Color.Primary">Iniciá sesión aquí</MudLink>
+                <MudText Typo="Typo.body2" Style="color: var(--saas-text-secondary);">
+                    ¿Ya tenés una cuenta? <MudLink Href="/login" Style="color: var(--saas-text-primary); font-weight: 600;">Iniciá sesión</MudLink>
                 </MudText>
             </div>
         </EditForm>
-    </MudPaper>
+    </MudCard>
 </MudContainer>
 
 @code {

@@ -3,59 +3,90 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<PageTitle>Gastos Operativos - Gastronómico SaaS</PageTitle>
+<PageTitle>Gastos Operativos - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
-    <div class="d-flex justify-space-between align-center mb-6">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Gastos Operativos</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de compras de mercadería, insumos y servicios</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Gastos Operativos</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro y categorización de compras de mercadería, servicios públicos y mantenimiento.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Size="Size.Small">
             Registrar Gasto
         </MudButton>
     </div>
 
-    <MudTable Items="@expenses" Hover="true" Elevation="4" Loading="@loading">
-        <HeaderContent>
-            <MudTh>Fecha</MudTh>
-            <MudTh>Descripción</MudTh>
-            <MudTh>Categoría</MudTh>
-            <MudTh>Monto</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Fecha">@context.Date.ToString("dd/MM/yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Descripción"><b>@context.Description</b></MudTd>
-            <MudTd DataLabel="Categoría">
-                <MudChip T="string" Size="Size.Small">@context.Category</MudChip>
-            </MudTd>
-            <MudTd DataLabel="Monto" Style="color: #f44336; font-weight: bold;">
-                $ @context.Amount
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    @if (expenses.Any())
+    {
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="pa-3 px-4 rounded mud-paper d-flex align-center gap-3">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--saas-error-bg); color: var(--saas-error-text); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.MoneyOff" Size="Size.Small" />
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--saas-text-secondary);">Total Gastos Registrados</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--saas-error-text);">$ @expenses.Sum(e => e.Amount).ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mud-paper overflow-hidden">
+        <MudTable Items="@expenses" Hover="true" Elevation="0" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Fecha / Hora</MudTh>
+                <MudTh>Descripción</MudTh>
+                <MudTh>Categoría</MudTh>
+                <MudTh Style="text-align: right;">Monto</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">
+                    <span style="font-size: 0.8125rem; color: var(--saas-text-secondary);">@context.Date.ToString("dd/MM/yyyy HH:mm")</span>
+                </MudTd>
+                <MudTd DataLabel="Descripción">
+                    <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Description</span>
+                </MudTd>
+                <MudTd DataLabel="Categoría">
+                    <span class="saas-badge saas-badge-neutral">@context.Category</span>
+                </MudTd>
+                <MudTd DataLabel="Monto" Style="text-align: right;">
+                    <span style="font-weight: 700; color: var(--saas-error-text);">$ @context.Amount.ToString("N2")</span>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No hay gastos registrados</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Comenzá registrando las compras y servicios del negocio.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
 </MudContainer>
 
 <MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Registrar Nuevo Gasto</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.MoneyOff" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Registrar Nuevo Gasto Operativo</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="newExpense.Description" Label="Descripción (Ej: Compra de verdura)" Required="true" Class="mb-3" />
-        <MudNumericField @bind-Value="newExpense.Amount" Label="Monto ($)" Min="1" Required="true" Class="mb-3" />
-        <MudSelect T="string" @bind-Value="newExpense.Category" Label="Categoría del Gasto" Class="mb-3">
-            <MudSelectItem Value="@("Mercadería")">Mercadería / Insumos</MudSelectItem>
+        <MudTextField @bind-Value="newExpense.Description" Label="Descripción (Ej: Verdulería, Recibo de Luz)" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="newExpense.Amount" Label="Monto Total ($)" Min="1m" Required="true" Variant="Variant.Outlined" Format="N2" Class="mb-3" />
+        <MudSelect T="string" @bind-Value="newExpense.Category" Label="Categoría del Gasto" Variant="Variant.Outlined" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
+            <MudSelectItem Value="@("Mercadería")">Mercadería / Insumos de Cocina</MudSelectItem>
             <MudSelectItem Value="@("Servicios")">Servicios (Luz, Gas, Agua, Internet)</MudSelectItem>
             <MudSelectItem Value="@("Mantenimiento")">Mantenimiento y Reparaciones</MudSelectItem>
             <MudSelectItem Value="@("Sueldos")">Adelantos / Sueldos</MudSelectItem>
-            <MudSelectItem Value="@("Otros")">Otros Gastos</MudSelectItem>
+            <MudSelectItem Value="@("Otros")">Otros Gastos Operativos</MudSelectItem>
         </MudSelect>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveExpense"
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveExpense"
                    Disabled="@(string.IsNullOrWhiteSpace(newExpense.Description) || newExpense.Amount <= 0)">
-            Guardar
+            Guardar Gasto
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -97,7 +128,7 @@
         var res = await Http.PostAsJsonAsync("api/Expenses", newExpense);
         if (res.IsSuccessStatusCode)
         {
-            Snackbar.Add("Gasto registrado", Severity.Success);
+            Snackbar.Add("Gasto registrado con éxito", Severity.Success);
             dialogOpen = false;
             await LoadExpenses();
         }

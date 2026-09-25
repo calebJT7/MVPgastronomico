@@ -11,37 +11,40 @@
              FeatureName="Módulo de Reservas de Mesas"
              Description="Gestioná el libro de reservas del restaurante o bar: asignación de mesas, confirmación de clientes, control de comensales y seguimiento de asistencia.">
 
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Libro de Reservas</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión de mesas reservadas, horarios y clientes para el salón.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Libro de Reservas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión de mesas reservadas, horarios, cantidad de comensales y seguimiento de estado.</MudText>
         </div>
         <div class="d-flex gap-2">
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadReservations">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadReservations" Size="Size.Small">
                 Actualizar
             </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Size="Size.Small">
                 Nueva Reserva
             </MudButton>
         </div>
     </div>
 
     <!-- Filters -->
-    <MudCard Elevation="1" Class="pa-3 mb-4">
-        <div class="d-flex flex-wrap align-center gap-4">
-            <MudDatePicker @bind-Date="filterDate" Label="Fecha de Reserva" DateFormat="dd/MM/yyyy" Clearable="true" />
-            <MudSelect T="ReservationStatus?" @bind-Value="filterStatus" Label="Estado" Clearable="true">
+    <div class="mud-paper pa-3 mb-4 d-flex flex-wrap align-center justify-space-between gap-3">
+        <div class="d-flex flex-wrap align-center gap-3">
+            <MudDatePicker @bind-Date="filterDate" Label="Fecha de Reserva" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+            <MudSelect T="ReservationStatus?" @bind-Value="filterStatus" Label="Estado" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" AnchorOrigin="Origin.BottomCenter">
                 <MudSelectItem T="ReservationStatus?" Value="@(ReservationStatus.Pending)">Pendiente</MudSelectItem>
                 <MudSelectItem T="ReservationStatus?" Value="@(ReservationStatus.Confirmed)">Confirmada</MudSelectItem>
                 <MudSelectItem T="ReservationStatus?" Value="@(ReservationStatus.Seated)">En Mesa / Sentados</MudSelectItem>
                 <MudSelectItem T="ReservationStatus?" Value="@(ReservationStatus.Cancelled)">Cancelada</MudSelectItem>
                 <MudSelectItem T="ReservationStatus?" Value="@(ReservationStatus.NoShow)">No Asistió (No Show)</MudSelectItem>
             </MudSelect>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadReservations" StartIcon="@Icons.Material.Filled.FilterAlt">
+        </div>
+        <div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadReservations" StartIcon="@Icons.Material.Filled.FilterAlt" Size="Size.Small">
                 Aplicar Filtros
             </MudButton>
         </div>
-    </MudCard>
+    </div>
 
     @if (loading)
     {
@@ -49,97 +52,112 @@
     }
     else if (!reservations.Any())
     {
-        <MudPaper Class="pa-6 text-center" Elevation="1">
-            <MudText Typo="Typo.body1" Color="Color.Secondary">No hay reservas registradas para el criterio seleccionado.</MudText>
-        </MudPaper>
+        <div class="mud-paper pa-8 text-center text-muted">
+            <MudIcon Icon="@Icons.Material.Filled.EventSeat" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No hay reservas para la fecha y criterio seleccionado</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Podés crear una nueva reserva usando el botón superior.</MudText>
+        </div>
     }
     else
     {
-        <MudTable Items="@reservations" Dense="true" Hover="true" Striped="true" Elevation="2">
-            <HeaderContent>
-                <MudTh>Fecha y Hora</MudTh>
-                <MudTh>Cliente</MudTh>
-                <MudTh>Teléfono / Contacto</MudTh>
-                <MudTh>Comensales</MudTh>
-                <MudTh>Mesa Asignada</MudTh>
-                <MudTh>Estado</MudTh>
-                <MudTh>Notas</MudTh>
-                <MudTh Style="text-align: center;">Acciones Rápidas</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd><b>@context.ReservationDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</b></MudTd>
-                <MudTd>@context.CustomerName</MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.CustomerPhone) ? "-" : context.CustomerPhone)</MudTd>
-                <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Pax personas</MudChip></MudTd>
-                <MudTd>
-                    @(context.Table != null ? $"Mesa #{context.Table.Number}" : (context.TableId.HasValue ? $"Mesa #{context.TableId}" : "Sin asignar"))
-                </MudTd>
-                <MudTd>
-                    @switch (context.Status)
-                    {
-                        case ReservationStatus.Pending:
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Pendiente</MudChip>
-                            break;
-                        case ReservationStatus.Confirmed:
-                            <MudChip T="string" Color="Color.Info" Size="Size.Small">Confirmada</MudChip>
-                            break;
-                        case ReservationStatus.Seated:
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small">En Mesa</MudChip>
-                            break;
-                        case ReservationStatus.Cancelled:
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small">Cancelada</MudChip>
-                            break;
-                        case ReservationStatus.NoShow:
-                            <MudChip T="string" Color="Color.Error" Size="Size.Small">No Show</MudChip>
-                            break;
-                    }
-                </MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)</MudTd>
-                <MudTd Style="text-align: center;">
-                    @if (context.Status == ReservationStatus.Pending)
-                    {
-                        <MudTooltip Text="Confirmar Reserva">
-                            <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Info"
-                                           OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Confirmed))" />
-                        </MudTooltip>
-                    }
-                    @if (context.Status == ReservationStatus.Pending || context.Status == ReservationStatus.Confirmed)
-                    {
-                        <MudTooltip Text="Sentar en Mesa">
-                            <MudIconButton Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Small" Color="Color.Success"
-                                           OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Seated))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Marcar No Show">
-                            <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Warning"
-                                           OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.NoShow))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Cancelar Reserva">
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
-                                           OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Cancelled))" />
-                        </MudTooltip>
-                    }
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <div class="mud-paper overflow-hidden">
+            <MudTable Items="@reservations" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Fecha y Hora</MudTh>
+                    <MudTh>Cliente</MudTh>
+                    <MudTh>Teléfono</MudTh>
+                    <MudTh>Comensales</MudTh>
+                    <MudTh>Mesa</MudTh>
+                    <MudTh>Estado</MudTh>
+                    <MudTh>Observaciones</MudTh>
+                    <MudTh Style="text-align: right;">Acciones Rápidas</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span style="font-weight: 700; color: var(--saas-text-primary);">@context.ReservationDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                    </MudTd>
+                    <MudTd>
+                        <span style="font-weight: 600;">@context.CustomerName</span>
+                    </MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.CustomerPhone) ? "-" : context.CustomerPhone)</MudTd>
+                    <MudTd>
+                        <span class="saas-badge saas-badge-neutral">@context.Pax personas</span>
+                    </MudTd>
+                    <MudTd>
+                        @(context.Table != null ? $"Mesa #{context.Table.Number}" : (context.TableId.HasValue ? $"Mesa #{context.TableId}" : "Sin asignar"))
+                    </MudTd>
+                    <MudTd>
+                        @switch (context.Status)
+                        {
+                            case ReservationStatus.Pending:
+                                <span class="saas-badge saas-badge-warning">Pendiente</span>
+                                break;
+                            case ReservationStatus.Confirmed:
+                                <span class="saas-badge saas-badge-info">Confirmada</span>
+                                break;
+                            case ReservationStatus.Seated:
+                                <span class="saas-badge saas-badge-success">En Mesa</span>
+                                break;
+                            case ReservationStatus.Cancelled:
+                                <span class="saas-badge saas-badge-neutral">Cancelada</span>
+                                break;
+                            case ReservationStatus.NoShow:
+                                <span class="saas-badge saas-badge-error">No Show</span>
+                                break;
+                        }
+                    </MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)</MudTd>
+                    <MudTd Style="text-align: right;">
+                        <div class="d-flex justify-end gap-1">
+                            @if (context.Status == ReservationStatus.Pending)
+                            {
+                                <MudTooltip Text="Confirmar Reserva">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Info"
+                                                   OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Confirmed))" Style="width: 28px; height: 28px; padding: 2px;" />
+                                </MudTooltip>
+                            }
+                            @if (context.Status == ReservationStatus.Pending || context.Status == ReservationStatus.Confirmed)
+                            {
+                                <MudTooltip Text="Sentar en Mesa">
+                                    <MudIconButton Icon="@Icons.Material.Filled.TableRestaurant" Size="Size.Small" Color="Color.Success"
+                                                   OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Seated))" Style="width: 28px; height: 28px; padding: 2px;" />
+                                </MudTooltip>
+                                <MudTooltip Text="Marcar No Show">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Warning"
+                                                   OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.NoShow))" Style="width: 28px; height: 28px; padding: 2px;" />
+                                </MudTooltip>
+                                <MudTooltip Text="Cancelar Reserva">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => UpdateStatusAsync(context.Id, ReservationStatus.Cancelled))" Style="width: 28px; height: 28px; padding: 2px;" />
+                                </MudTooltip>
+                            }
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </div>
     }
 
     <!-- Dialog Create Reservation -->
     <MudDialog @bind-Visible="dialogVisible" Options="dialogOptions">
         <TitleContent>
-            <MudText Typo="Typo.h6">Nueva Reserva de Mesa</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.EventSeat" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Nueva Reserva de Mesa</MudText>
+            </div>
         </TitleContent>
         <DialogContent>
             <MudTextField @bind-Value="createModel.CustomerName" Label="Nombre del Cliente" Variant="Variant.Outlined" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="createModel.CustomerPhone" Label="Teléfono de Contacto" Variant="Variant.Outlined" Class="mb-3" />
             
             <div class="d-flex gap-3 mb-3">
-                <MudDatePicker @bind-Date="selectedDate" Label="Fecha" DateFormat="dd/MM/yyyy" />
-                <MudTimePicker @bind-Time="selectedTime" Label="Hora" />
+                <MudDatePicker @bind-Date="selectedDate" Label="Fecha" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" />
+                <MudTimePicker @bind-Time="selectedTime" Label="Hora" Variant="Variant.Outlined" />
             </div>
 
             <div class="d-flex gap-3 mb-3">
                 <MudNumericField @bind-Value="createModel.Pax" Label="Comensales (Pax)" Variant="Variant.Outlined" Min="1" />
-                <MudSelect T="int?" @bind-Value="createModel.TableId" Label="Mesa Sugerida (Opcional)" Variant="Variant.Outlined" Clearable="true">
+                <MudSelect T="int?" @bind-Value="createModel.TableId" Label="Mesa Sugerida (Opcional)" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var table in availableTables)
                     {
                         <MudSelectItem T="int?" Value="@((int?)table.Id)">Mesa #@table.Number (@table.Status)</MudSelectItem>
@@ -150,12 +168,13 @@
             <MudTextField @bind-Value="createModel.Notes" Label="Notas / Preferencias (ej. cumpleaños, patio)" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="@(() => dialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => dialogVisible = false)">Cancelar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveReservationAsync" Disabled="saving">
                 @(saving ? "Guardando..." : "Crear Reserva")
             </MudButton>
         </DialogActions>
     </MudDialog>
+</MudContainer>
 
 </FeatureGate>
 
@@ -217,7 +236,7 @@
     private void OpenCreateDialog()
     {
         selectedDate = DateTime.Today;
-        selectedTime = TimeSpan.FromHours(20); // 20:00 default
+        selectedTime = TimeSpan.FromHours(20);
         createModel = new ReservationWriteRequest { Pax = 2 };
         dialogVisible = true;
     }

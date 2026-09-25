@@ -7,24 +7,26 @@
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="my-8">
-        <MudCard Elevation="4" Class="pa-6 rounded-lg text-center" Style="border: 2px dashed var(--mud-palette-warning); background: var(--mud-palette-surface);">
-            <MudCardContent>
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="my-10">
+        <MudCard Elevation="0" Class="pa-8 text-center" Style="border: 1px solid var(--saas-border); border-radius: 16px; box-shadow: var(--saas-shadow-sm);">
+            <MudCardContent Class="pa-4">
                 <div class="d-flex justify-center mb-4">
-                    <MudAvatar Color="Color.Warning" Size="Size.Large" Class="pa-4">
-                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Large" />
-                    </MudAvatar>
+                    <div style="width: 56px; height: 56px; border-radius: 14px; background: var(--saas-surface-subtle); border: 1px solid var(--saas-border); display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Style="color: var(--saas-primary); font-size: 28px;" />
+                    </div>
                 </div>
                 
-                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Class="mb-2 font-weight-bold">
-                    PLAN PREMIUM
-                </MudChip>
+                <div class="mb-3">
+                    <span class="saas-badge saas-badge-warning" style="font-size: 0.75rem; letter-spacing: 0.05em; padding: 4px 10px;">
+                        PLAN PREMIUM
+                    </span>
+                </div>
 
-                <MudText Typo="Typo.h5" Class="font-weight-bold mb-2">
+                <MudText Typo="Typo.h5" Class="font-weight-bold mb-2" Style="color: var(--saas-text-primary); letter-spacing: -0.02em;">
                     @(string.IsNullOrWhiteSpace(FeatureName) ? "Funcionalidad Premium" : FeatureName)
                 </MudText>
 
-                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6 mx-auto" Style="max-width: 600px;">
+                <MudText Typo="Typo.body2" Class="mb-6 mx-auto" Style="color: var(--saas-text-secondary); max-width: 520px; line-height: 1.6;">
                     @(string.IsNullOrWhiteSpace(Description) 
                         ? "Esta función no está disponible en tu plan actual. Actualizá a Plan Premium para desbloquear insumos avanzados, recetas de costo, KDS de cocina, división de cuentas, reservas y reportes de rentabilidad."
                         : Description)
@@ -32,22 +34,24 @@ else
 
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
-                           Size="Size.Large"
-                           StartIcon="@Icons.Material.Filled.Star"
+                           Size="Size.Medium"
+                           StartIcon="@Icons.Material.Filled.RocketLaunch"
+                           Class="px-6 py-2 rounded-lg font-weight-bold"
                            OnClick="@(() => Navigation.NavigateTo("/subscription"))">
                     Mejorar a Plan Premium
                 </MudButton>
 
                 @if (SaaSState.IsTester)
                 {
-                    <div class="mt-4 pa-2 rounded" style="background: rgba(33, 150, 243, 0.1); border: 1px solid var(--mud-palette-info);">
-                        <MudText Typo="Typo.caption" Color="Color.Info" Class="font-weight-bold d-block mb-1">
+                    <div class="mt-6 pa-3 rounded-lg" style="background: var(--saas-surface-subtle); border: 1px dashed var(--saas-border); max-width: 440px; margin: 0 auto;">
+                        <MudText Typo="Typo.caption" Class="font-weight-bold d-block mb-2" Style="color: var(--saas-text-secondary); letter-spacing: 0.05em;">
                             MODO TESTER INTERNO ACTIVO
                         </MudText>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.Build"
+                                   Class="rounded-lg"
                                    OnClick="@(() => _testerBypass = true)">
-                            Probar Módulo de todas formas (Bypass Tester)
+                            Probar Módulo (Bypass Tester)
                         </MudButton>
                     </div>
                 }

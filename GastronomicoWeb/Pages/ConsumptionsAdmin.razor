@@ -3,47 +3,80 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<PageTitle>Consumo de Personal - Gastronómico SaaS</PageTitle>
+<PageTitle>Consumo de Personal - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
-    <div class="d-flex justify-space-between align-center mb-6">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Consumo de Empleados</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de comidas y bebidas consumidas por el equipo de trabajo</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Consumo de Empleados</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de comidas, bebidas y consumiciones del equipo de trabajo y cocina.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Size="Size.Small">
             Registrar Consumo
         </MudButton>
     </div>
 
-    <MudTable Items="@consumptions" Hover="true" Elevation="4" Loading="@loading">
-        <HeaderContent>
-            <MudTh>Fecha</MudTh>
-            <MudTh>Empleado</MudTh>
-            <MudTh>Producto Consumido</MudTh>
-            <MudTh>Monto</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Fecha">@context.Date.ToString("dd/MM/yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Empleado"><b>@context.EmployeeName</b></MudTd>
-            <MudTd DataLabel="Producto">@context.ProductName</MudTd>
-            <MudTd DataLabel="Monto">$ @context.Amount</MudTd>
-        </RowTemplate>
-    </MudTable>
+    @if (consumptions.Any())
+    {
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="pa-3 px-4 rounded mud-paper d-flex align-center gap-3">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--saas-info-bg); color: var(--saas-info-text); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" />
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--saas-text-secondary);">Valor Total Consumido</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--saas-text-primary);">$ @consumptions.Sum(c => c.Amount).ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mud-paper overflow-hidden">
+        <MudTable Items="@consumptions" Hover="true" Elevation="0" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Fecha / Hora</MudTh>
+                <MudTh>Empleado</MudTh>
+                <MudTh>Producto / Detalle Consumido</MudTh>
+                <MudTh Style="text-align: right;">Valor Estimado</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">
+                    <span style="font-size: 0.8125rem; color: var(--saas-text-secondary);">@context.Date.ToString("dd/MM/yyyy HH:mm")</span>
+                </MudTd>
+                <MudTd DataLabel="Empleado">
+                    <span style="font-weight: 600; color: var(--saas-text-primary);">@context.EmployeeName</span>
+                </MudTd>
+                <MudTd DataLabel="Producto">@context.ProductName</MudTd>
+                <MudTd DataLabel="Monto" Style="text-align: right; font-weight: 600; color: var(--saas-text-primary);">
+                    $ @context.Amount.ToString("N2")
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No hay consumos de personal registrados</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Registrá las comidas y bebidas consumidas por el equipo.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
 </MudContainer>
 
 <MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Registrar Consumo de Personal</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Registrar Consumo de Personal</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="newConsumption.EmployeeName" Label="Nombre del Empleado" Required="true" Class="mb-3" />
-        <MudTextField @bind-Value="newConsumption.ProductName" Label="Producto (Ej: 2 Empanadas y Coca Cola)" Required="true" Class="mb-3" />
-        <MudNumericField @bind-Value="newConsumption.Amount" Label="Valor Estimado ($)" Min="0" Class="mb-3" />
+        <MudTextField @bind-Value="newConsumption.EmployeeName" Label="Nombre del Empleado" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="newConsumption.ProductName" Label="Producto o Detalle (Ej: 2 Empanadas y Bebida)" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="newConsumption.Amount" Label="Valor Estimado ($)" Min="0m" Variant="Variant.Outlined" Format="N2" Class="mb-3" />
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveConsumption"
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveConsumption"
                    Disabled="@(string.IsNullOrWhiteSpace(newConsumption.EmployeeName) || string.IsNullOrWhiteSpace(newConsumption.ProductName))">
             Guardar
         </MudButton>

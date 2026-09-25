@@ -3,10 +3,18 @@
 @using RotiseriaWeb.Models
 @inject HttpClient Http
 
-<PageTitle>Finanzas y Reportes - SaaS Gastronómico</PageTitle>
+<PageTitle>Finanzas y Resumen - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 mb-8">
-    <MudText Typo="Typo.h4" Class="mb-6" Color="Color.Primary">Resumen de Finanzas y Operación</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Resumen de Finanzas y Operación</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Métricas clave del día, control de inventario crítico y rendimiento mensual.</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="OnInitializedAsync" Size="Size.Small">
+            Actualizar Métricas
+        </MudButton>
+    </div>
 
     @if (loading)
     {
@@ -14,107 +22,160 @@
     }
     else
     {
-        <MudGrid>
+        <MudGrid Spacing="3">
             @* --- 1. FILA DE TARJETAS PRINCIPALES (4 métricas clave) --- *@
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="4" Class="pa-4 rounded-lg" Style="border-left: 6px solid #4caf50;">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">VENTAS DE HOY</MudText>
-                    <MudText Typo="Typo.h4"><b>$ @stats.SalesToday.ToString("N2")</b></MudText>
-                </MudPaper>
+                <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                    <div>
+                        <div class="d-flex justify-space-between align-start mb-2">
+                            <span class="saas-kpi-label">Ventas de Hoy</span>
+                            <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-success-bg); color: var(--saas-success-text);">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                            </div>
+                        </div>
+                        <div class="saas-kpi-value">$ @stats.SalesToday.ToString("N2")</div>
+                    </div>
+                    <div class="saas-kpi-subtext d-flex align-center gap-1">
+                        <span class="saas-badge saas-badge-success">Facturación</span>
+                        <span>Total facturado en el día</span>
+                    </div>
+                </div>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="4" Class="pa-4 rounded-lg" Style="border-left: 6px solid #FF9800;">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">CAJA DELIVERY</MudText>
-                    <MudText Typo="Typo.h4"><b>$ @stats.DeliveryRevenue.ToString("N2")</b></MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@stats.DeliveryTrips viajes realizados</MudText>
-                </MudPaper>
+                <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                    <div>
+                        <div class="d-flex justify-space-between align-start mb-2">
+                            <span class="saas-kpi-label">Caja Delivery</span>
+                            <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-warning-bg); color: var(--saas-warning-text);">
+                                <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Size="Size.Small" />
+                            </div>
+                        </div>
+                        <div class="saas-kpi-value">$ @stats.DeliveryRevenue.ToString("N2")</div>
+                    </div>
+                    <div class="saas-kpi-subtext d-flex align-center gap-1">
+                        <span class="saas-badge saas-badge-warning">@stats.DeliveryTrips viajes</span>
+                        <span>Envíos a domicilio</span>
+                    </div>
+                </div>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="4" Class="pa-4 rounded-lg" Style="border-left: 6px solid #f44336;">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">DEUDA TOTAL (FIADOS)</MudText>
-                    <MudText Typo="Typo.h4" Color="Color.Error"><b>$ @stats.TotalDebt.ToString("N2")</b></MudText>
-                </MudPaper>
+                <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                    <div>
+                        <div class="d-flex justify-space-between align-start mb-2">
+                            <span class="saas-kpi-label">Deuda Total (Fiados)</span>
+                            <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-error-bg); color: var(--saas-error-text);">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" />
+                            </div>
+                        </div>
+                        <div class="saas-kpi-value" style="color: var(--saas-error-text);">$ @stats.TotalDebt.ToString("N2")</div>
+                    </div>
+                    <div class="saas-kpi-subtext d-flex align-center gap-1">
+                        <span class="saas-badge saas-badge-error">Pendiente</span>
+                        <span>Cuentas corrientes de clientes</span>
+                    </div>
+                </div>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="4" Class="pa-4 rounded-lg" Style="border-left: 6px solid #2196f3;">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">PEDIDOS DE HOY</MudText>
-                    <MudText Typo="Typo.h4"><b>@stats.OrdersCount</b></MudText>
-                </MudPaper>
+                <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                    <div>
+                        <div class="d-flex justify-space-between align-start mb-2">
+                            <span class="saas-kpi-label">Pedidos de Hoy</span>
+                            <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-info-bg); color: var(--saas-info-text);">
+                                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" />
+                            </div>
+                        </div>
+                        <div class="saas-kpi-value">@stats.OrdersCount</div>
+                    </div>
+                    <div class="saas-kpi-subtext d-flex align-center gap-1">
+                        <span class="saas-badge saas-badge-info">Comandas</span>
+                        <span>Despachadas y en salón</span>
+                    </div>
+                </div>
             </MudItem>
 
             @* --- 2. ALERTA DE STOCK --- *@
-            <MudItem xs="12" Class="mt-4">
-                <MudCard Elevation="4">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Productos con Bajo Stock</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
+            <MudItem xs="12" Class="mt-2">
+                <div class="mud-paper pa-5">
+                    <div class="d-flex justify-space-between align-center mb-4">
+                        <div>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Control de Stock Crítico</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Productos próximos a agotarse en el inventario</MudText>
+                        </div>
                         @if (stats.LowStock != null && stats.LowStock.Any())
                         {
-                            <MudGrid>
-                                @foreach (var item in stats.LowStock)
-                                {
-                                    <MudItem xs="12" sm="6" md="4">
-                                        <div class="d-flex justify-space-between align-center pa-2"
-                                             style="border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;">
-                                            <MudText>@item.Name</MudText>
-                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Quedan @item.Stock</MudChip>
+                            <span class="saas-badge saas-badge-warning">@stats.LowStock.Count producto(s) en alerta</span>
+                        }
+                    </div>
+
+                    @if (stats.LowStock != null && stats.LowStock.Any())
+                    {
+                        <MudGrid Spacing="2">
+                            @foreach (var item in stats.LowStock)
+                            {
+                                <MudItem xs="12" sm="6" md="4">
+                                    <div class="d-flex justify-space-between align-center pa-3 rounded"
+                                         style="border: 1px solid var(--saas-border); background-color: var(--saas-surface);">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Color="Color.Secondary" />
+                                            <MudText Typo="Typo.body2" Style="font-weight: 500;">@item.Name</MudText>
                                         </div>
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        }
-                        else
-                        {
-                            <MudAlert Severity="Severity.Success">Stock de productos controlado adecuadamente.</MudAlert>
-                        }
-                    </MudCardContent>
-                </MudCard>
+                                        <span class="saas-badge saas-badge-warning">Quedan @item.Stock</span>
+                                    </div>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-center gap-2 pa-3 rounded" style="background-color: var(--saas-success-bg); border: 1px solid var(--saas-success-border); color: var(--saas-success-text);">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" />
+                            <MudText Typo="Typo.body2">El stock de todos los productos se encuentra en niveles normales.</MudText>
+                        </div>
+                    }
+                </div>
             </MudItem>
 
             @* --- 3. HISTORIAL MENSUAL (GRÁFICO Y TABLA) --- *@
-            <MudItem xs="12" Class="mt-4">
-                <MudCard Elevation="4">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Ventas por Mes (Último Período)</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="12" md="7">
-                                @if (_series.Any())
-                                {
-                                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_series" ChartLabels="@_labels"
-                                              Width="100%" Height="300px" />
-                                }
-                                else
-                                {
-                                    <MudText Class="pa-4">Sin datos suficientes para graficar.</MudText>
-                                }
-                            </MudItem>
-                            <MudItem xs="12" md="5">
-                                <MudTable Items="@monthlyData" Dense="true" Hover="true" Height="300px" FixedHeader="true">
-                                    <HeaderContent>
-                                        <MudTh>Mes</MudTh>
-                                        <MudTh>Total Mensual</MudTh>
-                                        <MudTh>Pedidos</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        <MudTd>@context.Label</MudTd>
-                                        <MudTd><b>$ @context.Total.ToString("N2")</b></MudTd>
-                                        <MudTd>@context.OrderCount</MudTd>
-                                    </RowTemplate>
-                                </MudTable>
-                            </MudItem>
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
+            <MudItem xs="12" Class="mt-2">
+                <div class="mud-paper pa-5">
+                    <div class="mb-4">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Evolución de Ventas por Mes</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Histórico de facturación y volumen de pedidos de los últimos períodos</MudText>
+                    </div>
+
+                    <MudGrid>
+                        <MudItem xs="12" md="7">
+                            @if (_series.Any())
+                            {
+                                <MudChart ChartType="ChartType.Bar" ChartSeries="@_series" ChartLabels="@_labels"
+                                          Width="100%" Height="300px" />
+                            }
+                            else
+                            {
+                                <div class="pa-6 text-center text-muted">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Sin datos suficientes para graficar el histórico.</MudText>
+                                </div>
+                            }
+                        </MudItem>
+                        <MudItem xs="12" md="5">
+                            <MudTable Items="@monthlyData" Dense="true" Hover="true" Height="300px" FixedHeader="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Mes</MudTh>
+                                    <MudTh Style="text-align: right;">Total Facturado</MudTh>
+                                    <MudTh Style="text-align: right;">Pedidos</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd><b>@context.Label</b></MudTd>
+                                    <MudTd Style="text-align: right; font-weight: 600;">$ @context.Total.ToString("N2")</MudTd>
+                                    <MudTd Style="text-align: right;">@context.OrderCount</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudItem>
+                    </MudGrid>
+                </div>
             </MudItem>
         </MudGrid>
     }

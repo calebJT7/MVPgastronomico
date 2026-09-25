@@ -6,70 +6,107 @@
 @inject SaaSStateService SaaSState
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_currentTheme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
-<MudLayout>
-    <MudAppBar Color="Color.Primary" Elevation="1">
+<MudLayout Class="@(_isDarkMode ? "saas-dark" : "saas-light")">
+    <MudAppBar Elevation="0" Style="background-color: var(--mud-palette-surface); border-bottom: 1px solid var(--saas-border); color: var(--mud-palette-text-primary);" Dense="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       OnClick="@((e) => DrawerToggle())" />
+                       OnClick="@((e) => DrawerToggle())" Class="mr-2" />
         
-        <MudText Typo="Typo.h5" Class="ml-3 font-weight-bold">
-            @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")
-        </MudText>
+        <div class="d-flex align-center gap-2">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background-color: var(--saas-primary); display: flex; align-items: center; justify-content: center; color: var(--saas-primary-text);">
+                <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" />
+            </div>
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700; line-height: 1.1; letter-spacing: -0.01em;">
+                    @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")
+                </MudText>
+            </div>
+        </div>
 
         <MudSpacer />
 
-        <AuthorizeView>
+        <AuthorizeView Context="authContext">
             <Authorized>
                 @if (!string.IsNullOrWhiteSpace(SaaSState.SubscriptionStatus))
                 {
                     <MudChip T="string" Size="Size.Small"
                              Color="@GetSubscriptionColor(SaaSState.SubscriptionStatus)"
                              Variant="Variant.Filled"
-                             Class="mr-2 cursor-pointer"
+                             Class="mr-3 cursor-pointer"
                              OnClick="@(() => Navigation.NavigateTo("/subscription"))">
                         @GetSubscriptionLabel(SaaSState.SubscriptionStatus)
                     </MudChip>
                 }
 
-                <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                               Color="Color.Inherit"
-                               OnClick="@(() => _isDarkMode = !_isDarkMode)"
-                               Class="mr-2" />
+                <MudTooltip Text="@(_isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro")">
+                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                   Color="Color.Inherit"
+                                   OnClick="ToggleDarkModeAsync"
+                                   Class="mr-2" Size="Size.Small" />
+                </MudTooltip>
 
-                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <div class="px-4 py-2">
-                        <MudText Typo="Typo.subtitle2">@(string.IsNullOrWhiteSpace(SaaSState.UserFullName) ? context.User.Identity?.Name : SaaSState.UserFullName)</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rol: @(SaaSState.UserRole)</MudText>
-                    </div>
-                    <MudDivider />
-                    <MudMenuItem Icon="@Icons.Material.Filled.Store" OnClick="@(() => Navigation.NavigateTo("/settings"))">Configuración del Local</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.CardMembership" OnClick="@(() => Navigation.NavigateTo("/subscription"))">Mi Suscripción</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Gavel" OnClick="@(() => Navigation.NavigateTo("/legal"))">Términos y Privacidad</MudMenuItem>
-                    <MudDivider />
-                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error" OnClick="LogoutAsync">Cerrar Sesión</MudMenuItem>
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <div class="d-flex align-center gap-2 cursor-pointer pa-1 rounded" style="border: 1px solid var(--saas-border); background-color: var(--mud-palette-surface);">
+                            <MudAvatar Color="Color.Dark" Size="Size.Small" Style="font-weight: 600; font-size: 0.75rem;">
+                                @(GetInitials(SaaSState.UserFullName ?? authContext.User.Identity?.Name ?? "U"))
+                            </MudAvatar>
+                            <div class="d-none d-sm-block mr-1">
+                                <MudText Typo="Typo.caption" Style="font-weight: 600; line-height: 1; display: block;">
+                                    @(string.IsNullOrWhiteSpace(SaaSState.UserFullName) ? authContext.User.Identity?.Name : SaaSState.UserFullName)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.65rem;">
+                                    @(SaaSState.UserRole)
+                                </MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Color="Color.Secondary" />
+                        </div>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="px-4 py-3" style="min-width: 200px;">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">
+                                @(string.IsNullOrWhiteSpace(SaaSState.UserFullName) ? authContext.User.Identity?.Name : SaaSState.UserFullName)
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Rol: @(SaaSState.UserRole)
+                            </MudText>
+                        </div>
+                        <MudDivider />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Store" OnClick="@(() => Navigation.NavigateTo("/settings"))">Configuración del Local</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.CardMembership" OnClick="@(() => Navigation.NavigateTo("/subscription"))">Mi Suscripción</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Gavel" OnClick="@(() => Navigation.NavigateTo("/legal"))">Términos y Privacidad</MudMenuItem>
+                        <MudDivider />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error" OnClick="LogoutAsync">Cerrar Sesión</MudMenuItem>
+                    </ChildContent>
                 </MudMenu>
             </Authorized>
             <NotAuthorized>
-                <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                               Color="Color.Inherit"
-                               OnClick="@(() => _isDarkMode = !_isDarkMode)"
-                               Class="mr-2" />
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/login"))">Iniciar Sesión</MudButton>
+                <MudTooltip Text="@(_isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro")">
+                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                   Color="Color.Inherit"
+                                   OnClick="ToggleDarkModeAsync"
+                                   Class="mr-2" Size="Size.Small" />
+                </MudTooltip>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Navigation.NavigateTo("/login"))">
+                    Iniciar Sesión
+                </MudButton>
             </NotAuthorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" ClipMode="DrawerClipMode.Always" Width="260px"
+               Style="border-right: 1px solid var(--saas-border); background-color: var(--mud-palette-surface);">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="my-4">
+    <MudMainContent Style="background-color: var(--mud-palette-background); min-height: 100vh;">
+        <MudContainer MaxWidth="MaxWidth.False" Class="py-6 px-4 px-md-8">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -78,17 +115,35 @@
 @code {
     private bool _drawerOpen = true;
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
-    private bool _isDarkMode = true;
+    private bool _isDarkMode = false;
 
     protected override async Task OnInitializedAsync()
     {
         SaaSState.OnChange += StateHasChanged;
+        try
+        {
+            var saved = await JS.InvokeAsync<string>("localStorage.getItem", "saas-dark-mode");
+            if (saved == "true")
+            {
+                _isDarkMode = true;
+                await JS.InvokeVoidAsync("eval", "document.documentElement.classList.add('saas-dark'); document.body.classList.add('saas-dark');");
+            }
+        }
+        catch { }
         await SaaSState.InitializeAsync();
     }
 
     public void Dispose()
     {
         SaaSState.OnChange -= StateHasChanged;
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant();
+        return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
     }
 
     private async Task LogoutAsync()
@@ -99,6 +154,39 @@
         }
         SaaSState.Clear();
         Navigation.NavigateTo("/login");
+    }
+
+    private async Task ToggleDarkModeAsync()
+    {
+        _isDarkMode = !_isDarkMode;
+        try
+        {
+            var isDark = _isDarkMode.ToString().ToLower();
+            await JS.InvokeVoidAsync("eval", $"document.documentElement.classList.toggle('saas-dark', {isDark}); document.body.classList.toggle('saas-dark', {isDark}); localStorage.setItem('saas-dark-mode', '{isDark}');");
+        }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var saved = await JS.InvokeAsync<string>("localStorage.getItem", "saas-dark-mode");
+                if (saved == "true" && !_isDarkMode)
+                {
+                    _isDarkMode = true;
+                    await JS.InvokeVoidAsync("eval", "document.documentElement.classList.add('saas-dark'); document.body.classList.add('saas-dark');");
+                    StateHasChanged();
+                }
+                else if (_isDarkMode)
+                {
+                    await JS.InvokeVoidAsync("eval", "document.documentElement.classList.add('saas-dark'); document.body.classList.add('saas-dark');");
+                }
+            }
+            catch { }
+        }
     }
 
     private Color GetSubscriptionColor(string status) => status switch
@@ -125,16 +213,70 @@
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#FF6D00",
-            Secondary = "#FFD600",
-            AppbarBackground = "#FF6D00",
+            Primary = "#0f172a",
+            PrimaryContrastText = "#ffffff",
+            Secondary = "#64748b",
+            SecondaryContrastText = "#ffffff",
+            Tertiary = "#2563eb",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#0f172a",
+            Background = "#f8fafc",
+            BackgroundGray = "#f1f5f9",
+            Surface = "#ffffff",
+            DrawerBackground = "#ffffff",
+            DrawerText = "#0f172a",
+            DrawerIcon = "#64748b",
+            TextPrimary = "#0f172a",
+            TextSecondary = "#64748b",
+            TextDisabled = "#94a3b8",
+            ActionDefault = "#64748b",
+            ActionDisabled = "#94a3b8",
+            ActionDisabledBackground = "#f1f5f9",
+            LinesDefault = "#e2e8f0",
+            LinesInputs = "#e2e8f0",
+            TableLines = "#f1f5f9",
+            Divider = "#e2e8f0",
+            DividerLight = "#f1f5f9",
+            Success = "#10b981",
+            Warning = "#f59e0b",
+            Error = "#ef4444",
+            Info = "#0ea5e9"
         },
         PaletteDark = new PaletteDark()
         {
-            Primary = "#FF8A65",
-            AppbarBackground = "#27272f",
-            Background = "#1a1a27",
-            Surface = "#1e1e2d",
+            Primary = "#f8fafc",
+            PrimaryContrastText = "#09090b",
+            Secondary = "#a1a1aa",
+            SecondaryContrastText = "#ffffff",
+            Tertiary = "#3b82f6",
+            AppbarBackground = "#09090b",
+            AppbarText = "#fafafa",
+            Background = "#09090b",
+            BackgroundGray = "#18181b",
+            Surface = "#121215",
+            DrawerBackground = "#09090b",
+            DrawerText = "#fafafa",
+            DrawerIcon = "#a1a1aa",
+            TextPrimary = "#fafafa",
+            TextSecondary = "#a1a1aa",
+            TextDisabled = "#71717a",
+            ActionDefault = "#a1a1aa",
+            ActionDisabled = "#52525b",
+            ActionDisabledBackground = "#27272a",
+            LinesDefault = "#27272a",
+            LinesInputs = "#27272a",
+            TableLines = "#27272a",
+            Divider = "#27272a",
+            DividerLight = "#18181b",
+            Success = "#10b981",
+            Warning = "#f59e0b",
+            Error = "#ef4444",
+            Info = "#38bdf8"
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "8px",
+            AppbarHeight = "60px"
         }
     };
 }

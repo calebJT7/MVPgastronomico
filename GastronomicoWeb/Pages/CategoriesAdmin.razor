@@ -3,65 +3,84 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<PageTitle>Categorías de Menú - Gastronómico SaaS</PageTitle>
+<PageTitle>Categorías de Menú - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
-    <div class="d-flex justify-space-between align-center mb-6">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Categorías del Menú</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Organiza tus platos, bebidas y productos</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Categorías del Menú</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Organiza platos, bebidas y postres con orden visual y políticas de stock.</MudText>
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Size="Size.Small">
             Nueva Categoría
         </MudButton>
     </div>
 
-    <MudTable Items="@categories" Hover="true" Elevation="4" Loading="@loading">
-        <HeaderContent>
-            <MudTh>Orden</MudTh>
-            <MudTh>Nombre</MudTh>
-            <MudTh>Control de Stock</MudTh>
-            <MudTh>Estado</MudTh>
-            <MudTh>Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Orden">@context.SortOrder</MudTd>
-            <MudTd DataLabel="Nombre"><b>@context.Name</b></MudTd>
-            <MudTd DataLabel="Stock">
-                @if (context.TracksStock)
-                {
-                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Descuenta Unidades</MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Sin Control</MudChip>
-                }
-            </MudTd>
-            <MudTd DataLabel="Estado">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
-                    @(context.IsActive ? "Activa" : "Inactiva")
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Acciones">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <div class="mud-paper overflow-hidden">
+        <MudTable Items="@categories" Hover="true" Elevation="0" Loading="@loading">
+            <HeaderContent>
+                <MudTh Style="width: 80px;">Orden</MudTh>
+                <MudTh>Nombre</MudTh>
+                <MudTh>Control de Stock</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh Style="text-align: right;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Orden">
+                    <span style="font-weight: 600; color: var(--saas-text-secondary);">#@context.SortOrder</span>
+                </MudTd>
+                <MudTd DataLabel="Nombre">
+                    <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Name</span>
+                </MudTd>
+                <MudTd DataLabel="Stock">
+                    @if (context.TracksStock)
+                    {
+                        <span class="saas-badge saas-badge-info">Descuenta Unidades</span>
+                    }
+                    else
+                    {
+                        <span class="saas-badge saas-badge-neutral">Sin Control</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Estado">
+                    <span class="saas-badge @(context.IsActive ? "saas-badge-success" : "saas-badge-error")">
+                        @(context.IsActive ? "Activa" : "Inactiva")
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="Acciones" Style="text-align: right;">
+                    <MudTooltip Text="Editar Categoría">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No hay categorías registradas</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Comenzá creando tu primera categoría de menú.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
 </MudContainer>
 
 <MudDialog @bind-Visible="dialogOpen" Options="dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(isEditing ? "Editar Categoría" : "Nueva Categoría")</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">@(isEditing ? "Editar Categoría" : "Nueva Categoría")</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="editingCategory.Name" Label="Nombre de Categoría" Required="true" Class="mb-3" />
-        <MudNumericField @bind-Value="editingCategory.SortOrder" Label="Orden de Visualización" Min="1" Class="mb-3" />
+        <MudTextField @bind-Value="editingCategory.Name" Label="Nombre de Categoría" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="editingCategory.SortOrder" Label="Orden de Visualización" Min="1" Variant="Variant.Outlined" Class="mb-3" />
         <MudCheckBox @bind-Value="editingCategory.TracksStock" Label="Controla stock de productos (ej: Bebidas empaquetadas)" Color="Color.Primary" T="bool" Class="mb-2" />
         <MudCheckBox @bind-Value="editingCategory.IsActive" Label="Categoría Activa" Color="Color.Success" T="bool" />
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SaveCategory" Disabled="@string.IsNullOrWhiteSpace(editingCategory.Name)">
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => dialogOpen = false)">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveCategory" Disabled="@string.IsNullOrWhiteSpace(editingCategory.Name)">
             Guardar
         </MudButton>
     </DialogActions>

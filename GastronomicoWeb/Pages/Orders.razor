@@ -31,134 +31,183 @@
     }
 </style>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Historial de Ventas</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de todas las órdenes despachadas y en curso</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Historial de Ventas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Registro cronológico de todas las comandas despachadas, mesas cobradas y envíos.</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CargarOrdenesAsync" StartIcon="@Icons.Material.Filled.Refresh">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CargarOrdenesAsync" StartIcon="@Icons.Material.Filled.Refresh" Size="Size.Small">
             Actualizar
         </MudButton>
     </div>
 
-    <MudTable Items="@_orders" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" Elevation="3" Class="rounded-lg">
-        <HeaderContent>
-            <MudTh># Pedido</MudTh>
-            <MudTh>Fecha / Hora</MudTh>
-            <MudTh>Tipo & Destino</MudTh>
-            <MudTh>Cliente</MudTh>
-            <MudTh>Pago</MudTh>
-            <MudTh>Total</MudTh>
-            <MudTh>Demora</MudTh>
-            <MudTh Style="text-align: right">Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="# Pedido"><b>#@context.Id</b></MudTd>
-            <MudTd DataLabel="Fecha">@context.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Tipo">
-                <MudChip T="string" Size="Size.Small" Color="@GetOrderTypeColor(context.OrderType)">
-                    @context.OrderType
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Cliente">
-                @(string.IsNullOrWhiteSpace(context.ClientName) ? (context.CustomerId.HasValue ? $"Cliente #{context.CustomerId}" : "-") : context.ClientName)
-            </MudTd>
-            <MudTd DataLabel="Pago">
-                <MudChip T="string" Size="Size.Small" Color="@(context.PaymentMethod == "Cuenta Corriente" ? Color.Warning : Color.Success)">
-                    @context.PaymentMethod
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Total"><b>$ @context.Total.ToString("N2")</b></MudTd>
-            <MudTd DataLabel="Demora">
-                @if (context.DispatchedAt.HasValue)
-                {
-                    <span>@Math.Round((context.DispatchedAt.Value - context.Date).TotalMinutes) min</span>
-                }
-                else
-                {
-                    <MudChip T="string" Color="Color.Info" Size="Size.Small">En Curso</MudChip>
-                }
-            </MudTd>
-            <MudTd DataLabel="Acciones" Style="text-align: right">
-                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
-                               OnClick="@(() => VerDetalle(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Primary" Size="Size.Small"
-                               OnClick="@(() => AbrirImpresion(context))" />
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">No se encontraron ventas registradas.</MudText>
-        </NoRecordsContent>
-    </MudTable>
+    <div class="mud-paper mb-4 overflow-hidden">
+        <MudTable Items="@_orders" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" Elevation="0">
+            <HeaderContent>
+                <MudTh># Pedido</MudTh>
+                <MudTh>Fecha / Hora</MudTh>
+                <MudTh>Modalidad</MudTh>
+                <MudTh>Cliente</MudTh>
+                <MudTh>Medio de Pago</MudTh>
+                <MudTh Style="text-align: right;">Total</MudTh>
+                <MudTh>Demora / Estado</MudTh>
+                <MudTh Style="text-align: right;">Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="# Pedido">
+                    <span style="font-weight: 700; color: var(--saas-text-primary);">#@context.Id</span>
+                </MudTd>
+                <MudTd DataLabel="Fecha">
+                    <span style="font-size: 0.8125rem;">@context.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                </MudTd>
+                <MudTd DataLabel="Modalidad">
+                    <span class="saas-badge @(context.OrderType == "Delivery" ? "saas-badge-warning" : (context.OrderType == "Salon" ? "saas-badge-info" : "saas-badge-neutral"))">
+                        @context.OrderType
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="Cliente">
+                    @(string.IsNullOrWhiteSpace(context.ClientName) ? (context.CustomerId.HasValue ? $"Cliente #{context.CustomerId}" : "-") : context.ClientName)
+                </MudTd>
+                <MudTd DataLabel="Pago">
+                    <span class="saas-badge @(context.PaymentMethod == "Cuenta Corriente" ? "saas-badge-warning" : "saas-badge-success")">
+                        @context.PaymentMethod
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="Total" Style="text-align: right;">
+                    <span style="font-weight: 700; color: var(--saas-text-primary);">$ @context.Total.ToString("N2")</span>
+                </MudTd>
+                <MudTd DataLabel="Demora">
+                    @if (context.DispatchedAt.HasValue)
+                    {
+                        <span style="color: var(--saas-text-secondary); font-size: 0.8125rem;">
+                            ✓ @Math.Round((context.DispatchedAt.Value - context.Date).TotalMinutes) min
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="saas-badge saas-badge-info">En Curso</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Acciones" Style="text-align: right;">
+                    <div class="d-flex justify-end gap-1">
+                        <MudTooltip Text="Ver Detalle">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Default" Size="Size.Small"
+                                           OnClick="@(() => VerDetalle(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                        </MudTooltip>
+                        <MudTooltip Text="Reimprimir Ticket">
+                            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default" Size="Size.Small"
+                                           OnClick="@(() => AbrirImpresion(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                        </MudTooltip>
+                    </div>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 text-center text-muted">
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No se encontraron ventas</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Aún no hay comandas registradas en el sistema.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
 
-    <div class="d-flex justify-end align-center mt-3 gap-2">
-        <MudButton Variant="Variant.Outlined" Disabled="@(_page <= 1)" OnClick="PaginaAnterior" Size="Size.Small">
-            Anterior
-        </MudButton>
-        <MudText Typo="Typo.body2">Página @_page de @Math.Max(1, _totalPages)</MudText>
-        <MudButton Variant="Variant.Outlined" Disabled="@(_page >= _totalPages)" OnClick="PaginaSiguiente" Size="Size.Small">
-            Siguiente
-        </MudButton>
+        <div class="d-flex justify-space-between align-center pa-3" style="background-color: var(--saas-surface-subtle); border-top: 1px solid var(--saas-border-subtle);">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Mostrando página @_page de @Math.Max(1, _totalPages) (@_total ventas en total)
+            </MudText>
+            <div class="d-flex gap-2">
+                <MudButton Variant="Variant.Outlined" Disabled="@(_page <= 1)" OnClick="PaginaAnterior" Size="Size.Small">
+                    Anterior
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Disabled="@(_page >= _totalPages)" OnClick="PaginaSiguiente" Size="Size.Small">
+                    Siguiente
+                </MudButton>
+            </div>
+        </div>
     </div>
 </MudContainer>
 
 @* MODAL DETALLE DE ORDEN *@
 <MudDialog @bind-Visible="_dialogDetalle" Options="_dialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Detalle Pedido #@_selectedOrder?.Id</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Detalle de Comanda #@_selectedOrder?.Id</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
         @if (_selectedOrder != null)
         {
-            <div class="mb-3">
-                <MudText Typo="Typo.body2"><b>Tipo:</b> @_selectedOrder.OrderType</MudText>
-                <MudText Typo="Typo.body2"><b>Cliente:</b> @_selectedOrder.ClientName</MudText>
+            <div class="pa-3 rounded mb-3" style="background-color: var(--saas-surface-subtle); border: 1px solid var(--saas-border-subtle); font-size: 0.875rem;">
+                <div class="d-flex justify-space-between mb-1">
+                    <span style="color: var(--saas-text-secondary);">Modalidad:</span>
+                    <b>@_selectedOrder.OrderType</b>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <span style="color: var(--saas-text-secondary);">Cliente:</span>
+                    <b>@(string.IsNullOrWhiteSpace(_selectedOrder.ClientName) ? "-" : _selectedOrder.ClientName)</b>
+                </div>
                 @if (!string.IsNullOrWhiteSpace(_selectedOrder.DeliveryAddress))
                 {
-                    <MudText Typo="Typo.body2"><b>Dirección:</b> @_selectedOrder.DeliveryAddress</MudText>
+                    <div class="d-flex justify-space-between mb-1">
+                        <span style="color: var(--saas-text-secondary);">Dirección Entrega:</span>
+                        <span>@_selectedOrder.DeliveryAddress</span>
+                    </div>
                 }
-                <MudText Typo="Typo.body2"><b>Fecha:</b> @_selectedOrder.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                <div class="d-flex justify-space-between">
+                    <span style="color: var(--saas-text-secondary);">Fecha y Hora:</span>
+                    <span>@_selectedOrder.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
             </div>
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-weight: 700; text-transform: uppercase;">Ítems de la Comanda</MudText>
+            <div class="my-2" style="max-height: 200px; overflow-y: auto;">
+                <MudList T="string" Dense="true">
+                    @foreach (var it in _selectedOrder.Items)
+                    {
+                        <MudListItem T="string" Class="px-0 py-1">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <span style="font-weight: 600;">@it.Quantity x</span>
+                                    <span class="ml-1">@it.ProductName</span>
+                                </div>
+                                <span style="font-weight: 600;">$@((it.Quantity * it.UnitPrice).ToString("N2"))</span>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </div>
+
             <MudDivider Class="my-2" />
-            <MudList T="string" Dense="true">
-                @foreach (var it in _selectedOrder.Items)
-                {
-                    <MudListItem T="string">
-                        <div class="d-flex justify-space-between">
-                            <span>@it.Quantity x @it.ProductName</span>
-                            <b>$@((it.Quantity * it.UnitPrice).ToString("N2"))</b>
-                        </div>
-                    </MudListItem>
-                }
-            </MudList>
-            <MudDivider Class="my-2" />
-            <div class="d-flex justify-space-between mt-2">
-                <MudText Typo="Typo.h6">Total:</MudText>
-                <MudText Typo="Typo.h6" Color="Color.Primary"><b>$ @_selectedOrder.Total.ToString("N2")</b></MudText>
+            <div class="d-flex justify-space-between align-center mt-2">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Total Facturado:</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 800; color: var(--saas-text-primary);">$ @_selectedOrder.Total.ToString("N2")</MudText>
             </div>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => _dialogDetalle = false)">Cerrar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => _dialogDetalle = false)">Cerrar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print"
                    OnClick="@(() => { _dialogDetalle = false; AbrirImpresion(_selectedOrder!); })">
             Imprimir Ticket
         </MudButton>
     </DialogActions>
 </MudDialog>
 
-@* MODAL DE TICKET TÉRMICO *@
+@* MODAL DE IMPRESIÓN *@
 <MudDialog @bind-Visible="_showReceiptModal" Options="_receiptDialogOptions">
     <TitleContent>
-        <MudText Typo="Typo.h6">Reimpresión de Ticket</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Print" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Ticket de Venta #@_selectedOrder?.Id</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
         @if (_selectedOrder != null)
         {
-            <div id="order-history-receipt" class="pa-3" style="background-color: white; color: black; font-family: monospace; border: 1px dashed #ccc; border-radius: 4px;">
+            <div id="order-history-receipt" class="pa-4 thermal-receipt-preview" style="font-family: monospace; border-radius: 8px;">
                 <div style="text-align: center; margin-bottom: 8px;">
-                    <div style="font-size: 16px; font-weight: bold;">@(SaaSState.CurrentBusiness?.TradeName ?? "SAAS GASTRONOMICO")</div>
+                    <div style="font-size: 15px; font-weight: bold;">@(SaaSState.CurrentBusiness?.TradeName ?? "SAAS GASTRONOMICO")</div>
                     @if (!string.IsNullOrWhiteSpace(SaaSState.CurrentBusiness?.TaxId))
                     {
                         <div style="font-size: 11px;">CUIT: @SaaSState.CurrentBusiness.TaxId</div>
@@ -171,7 +220,7 @@
                     {
                         <div style="font-size: 11px;">Tel: @SaaSState.CurrentBusiness.Phone</div>
                     }
-                    <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                    <div class="thermal-receipt-divider" style="margin: 8px 0;"></div>
                     <div style="font-size: 13px; font-weight: bold;">PEDIDO #@_selectedOrder.Id</div>
                     <div style="font-size: 11px;">Fecha: @_selectedOrder.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
                     <div style="font-size: 11px;">Tipo: @_selectedOrder.OrderType</div>
@@ -185,10 +234,10 @@
                     }
                 </div>
 
-                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                <div class="thermal-receipt-divider" style="margin: 8px 0;"></div>
                 <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                     <thead>
-                        <tr style="text-align: left; border-bottom: 1px solid #ddd;">
+                        <tr style="text-align: left; border-bottom: 1px solid var(--saas-border-subtle);">
                             <th>Cant</th>
                             <th>Prod</th>
                             <th style="text-align: right;">Total</th>
@@ -205,32 +254,32 @@
                         }
                     </tbody>
                 </table>
-                <div style="border-bottom: 1px dashed black; margin: 6px 0;"></div>
+                <div style="border-bottom: 1px dashed black; margin: 8px 0;"></div>
 
-                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
                     <span>Pago:</span>
-                    <span>@_selectedOrder.PaymentMethod</span>
+                    <span style="font-weight: bold;">@_selectedOrder.PaymentMethod</span>
                 </div>
                 @if (_selectedOrder.DeliveryCost > 0)
                 {
-                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px;">
                         <span>Envío:</span>
                         <span>$@_selectedOrder.DeliveryCost.ToString("N2")</span>
                     </div>
                 }
-                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-top: 6px; padding-top: 4px; border-top: 1px solid #ddd;">
                     <span>TOTAL:</span>
                     <span>$@_selectedOrder.Total.ToString("N2")</span>
                 </div>
 
-                <div style="text-align: center; margin-top: 12px; font-size: 11px;">
+                <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #555;">
                     Comprobante no fiscal - Documento interno
                 </div>
             </div>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => _showReceiptModal = false)">Cerrar</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => _showReceiptModal = false)">Cerrar</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintReceipt">
             Imprimir
         </MudButton>

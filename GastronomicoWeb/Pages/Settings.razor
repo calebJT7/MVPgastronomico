@@ -6,11 +6,13 @@
 
 <PageTitle>Configuración del Negocio - SaaS Gastronómico</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="my-4">
-    <MudText Typo="Typo.h4" Class="mb-1">Configuración del Negocio</MudText>
-    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-        Personaliza los datos comerciales, zona horaria y preferencias del local.
-    </MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-2 mb-8">
+    <div class="mb-6">
+        <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Configuración del Establecimiento</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Personalizá la identidad de tu local, datos fiscales para tickets, zona horaria y habilitación de módulos.
+        </MudText>
+    </div>
 
     @if (_loading)
     {
@@ -18,16 +20,20 @@
     }
     else if (_business != null)
     {
-        <MudPaper Class="pa-6" Elevation="2">
-            <EditForm Model="_model" OnValidSubmit="SaveSettings">
-                <DataAnnotationsValidator />
+        <EditForm Model="_model" OnValidSubmit="SaveSettings">
+            <DataAnnotationsValidator />
 
-                <MudGrid>
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.h6" Color="Color.Primary">Datos Comerciales</MudText>
-                        <MudDivider Class="my-2" />
-                    </MudItem>
+            <!-- Sección 1: Datos Comerciales -->
+            <div class="mud-paper pa-5 mb-4">
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Store" Color="Color.Primary" Size="Size.Small" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Datos Comerciales e Identidad</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Estos datos figuran en tickets de venta e informes</MudText>
+                    </div>
+                </div>
 
+                <MudGrid Spacing="2">
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="_model.TradeName" Label="Nombre Comercial / Fantasía *"
                                       Variant="Variant.Outlined" Required="true" RequiredError="El nombre comercial es obligatorio" />
@@ -62,12 +68,20 @@
                         <MudTextField @bind-Value="_model.LogoUrl" Label="URL del Logo (Opcional)"
                                       Variant="Variant.Outlined" Placeholder="https://ejemplo.com/logo.png" />
                     </MudItem>
+                </MudGrid>
+            </div>
 
-                    <MudItem xs="12" Class="mt-3">
-                        <MudText Typo="Typo.h6" Color="Color.Primary">Operación y Región</MudText>
-                        <MudDivider Class="my-2" />
-                    </MudItem>
+            <!-- Sección 2: Operación y Región -->
+            <div class="mud-paper pa-5 mb-4">
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Public" Color="Color.Primary" Size="Size.Small" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Operación y Zona Geográfica</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ajusta el rubro y huso horario para apertura y cierre de turnos</MudText>
+                    </div>
+                </div>
 
+                <MudGrid Spacing="2">
                     <MudItem xs="12" md="6">
                         <MudSelect T="BusinessType" Label="Tipo de Establecimiento Gastronómico" @bind-Value="_model.BusinessType"
                                    Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
@@ -94,67 +108,78 @@
                             <MudSelectItem Value="@("UTC")">UTC (Universal)</MudSelectItem>
                         </MudSelect>
                     </MudItem>
+                </MudGrid>
+            </div>
 
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mt-2 font-weight-bold">
-                            Módulos Activos en el Establecimiento
-                        </MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Adaptá la aplicación según las operaciones reales de tu negocio (ej. una rotisería puede no requerir salón o reservas).
-                        </MudText>
+            <!-- Sección 3: Módulos Activos -->
+            <div class="mud-paper pa-5 mb-4">
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.ToggleOn" Color="Color.Primary" Size="Size.Small" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Módulos Operativos Activos</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ocultá módulos que tu formato de negocio no requiera para simplificar la barra lateral</MudText>
+                    </div>
+                </div>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="4">
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Salón y Mesas</span>
+                            <MudSwitch @bind-Value="_model.TablesEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.TablesEnabled" Color="Color.Success">
-                            Salón y Mesas
-                        </MudSwitch>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Delivery / Envíos</span>
+                            <MudSwitch @bind-Value="_model.DeliveryEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.DeliveryEnabled" Color="Color.Success">
-                            Delivery / Envíos
-                        </MudSwitch>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Mostrador / Takeaway</span>
+                            <MudSwitch @bind-Value="_model.TakeawayEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.TakeawayEnabled" Color="Color.Success">
-                            Mostrador / Takeaway
-                        </MudSwitch>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Monitor de Cocina (KDS)</span>
+                            <MudSwitch @bind-Value="_model.KitchenEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.KitchenEnabled" Color="Color.Success">
-                            Comandas en Cocina
-                        </MudSwitch>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Libro de Reservas</span>
+                            <MudSwitch @bind-Value="_model.ReservationsEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.ReservationsEnabled" Color="Color.Success">
-                            Libro de Reservas
-                        </MudSwitch>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Control de Caja y Turnos</span>
+                            <MudSwitch @bind-Value="_model.CashControlEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
 
                     <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.CashControlEnabled" Color="Color.Success">
-                            Control de Caja
-                        </MudSwitch>
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6" md="4">
-                        <MudSwitch @bind-Value="_model.InventoryEnabled" Color="Color.Success">
-                            Control de Insumos
-                        </MudSwitch>
-                    </MudItem>
-
-                    <MudItem xs="12" Class="d-flex justify-end mt-4">
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
-                                   Size="Size.Large" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
-                            @(_saving ? "Guardando..." : "Guardar Cambios")
-                        </MudButton>
+                        <div class="pa-2 px-3 rounded d-flex align-center justify-space-between" style="border: 1px solid var(--saas-border);">
+                            <span style="font-size: 0.875rem; font-weight: 500;">Control de Insumos</span>
+                            <MudSwitch @bind-Value="_model.InventoryEnabled" Color="Color.Success" />
+                        </div>
                     </MudItem>
                 </MudGrid>
-            </EditForm>
-        </MudPaper>
+            </div>
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                           Size="Size.Large" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
+                    @(_saving ? "Guardando cambios..." : "Guardar Configuración")
+                </MudButton>
+            </div>
+        </EditForm>
     }
 </MudContainer>
 

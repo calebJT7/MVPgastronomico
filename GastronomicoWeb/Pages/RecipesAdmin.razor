@@ -11,21 +11,22 @@
              FeatureName="Fichas Técnicas y Recetas (BOM)"
              Description="Definí los ingredientes de cada plato para calcular automáticamente el costo de mercadería vendida (CMV), margen de rentabilidad real y descontar insumos con cada venta.">
 
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Recetas y Costeo (Escandallos)</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Composición de platos, costeo de materias primas y deducción automática.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Recetas y Costeo (CMV)</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Composición técnica de platos, costeo de materias primas y deducción automática de stock.</MudText>
         </div>
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadProductsAndSupplies">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadProductsAndSupplies" Size="Size.Small">
             Actualizar
         </MudButton>
     </div>
 
     <!-- Search filter -->
-    <MudCard Elevation="1" Class="pa-3 mb-4">
+    <div class="mud-paper pa-3 mb-4">
         <MudTextField @bind-Value="searchString" Placeholder="Buscar producto por nombre..." Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" />
-    </MudCard>
+                      AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+    </div>
 
     @if (loading)
     {
@@ -33,42 +34,55 @@
     }
     else if (!filteredProducts.Any())
     {
-        <MudPaper Class="pa-6 text-center" Elevation="1">
-            <MudText Typo="Typo.body1" Color="Color.Secondary">No se encontraron productos.</MudText>
-        </MudPaper>
+        <div class="mud-paper pa-8 text-center text-muted">
+            <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No se encontraron productos</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Verificá el filtro de búsqueda.</MudText>
+        </div>
     }
     else
     {
-        <MudTable Items="@filteredProducts" Dense="true" Hover="true" Striped="true" Elevation="2">
-            <HeaderContent>
-                <MudTh>Producto</MudTh>
-                <MudTh>Categoría</MudTh>
-                <MudTh Style="text-align: right;">Precio de Venta</MudTh>
-                <MudTh Style="text-align: center;">Acción</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd><b>@context.Name</b></MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.CategoryName) ? "General" : context.CategoryName)</MudTd>
-                <MudTd Style="text-align: right; font-weight: bold;">
-                    $@context.Price.ToString("N2")
-                </MudTd>
-                <MudTd Style="text-align: center;">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.RestaurantMenu"
-                               OnClick="@(() => OpenRecipeModal(context))">
-                        Configurar Receta
-                    </MudButton>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <div class="mud-paper overflow-hidden">
+            <MudTable Items="@filteredProducts" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Producto</MudTh>
+                    <MudTh>Categoría</MudTh>
+                    <MudTh Style="text-align: right;">Precio de Venta</MudTh>
+                    <MudTh Style="text-align: center;">Ficha Técnica</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Name</span>
+                    </MudTd>
+                    <MudTd>
+                        <span class="saas-badge saas-badge-neutral">
+                            @(string.IsNullOrWhiteSpace(context.CategoryName) ? "General" : context.CategoryName)
+                        </span>
+                    </MudTd>
+                    <MudTd Style="text-align: right; font-weight: 700; color: var(--saas-text-primary);">
+                        $@context.Price.ToString("N2")
+                    </MudTd>
+                    <MudTd Style="text-align: center;">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.RestaurantMenu"
+                                   OnClick="@(() => OpenRecipeModal(context))">
+                            Configurar Receta
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </div>
     }
 
     <!-- Dialog Recipe Configurator -->
     <MudDialog @bind-Visible="recipeDialogVisible" Options="dialogOptions">
         <TitleContent>
-            <MudText Typo="Typo.h6">
-                Receta: <b>@selectedProduct?.Name</b>
-            </MudText>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.AutoStories" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">
+                    Receta y Escandallo: <b>@selectedProduct?.Name</b>
+                </MudText>
+            </div>
         </TitleContent>
         <DialogContent>
             @if (loadingRecipe)
@@ -78,28 +92,35 @@
             else
             {
                 <!-- Margin and cost summary banner -->
-                <MudCard Elevation="0" Class="pa-4 mb-4" Style="background: rgba(33, 150, 243, 0.08); border-radius: 8px;">
-                    <MudGrid>
+                <div class="pa-3 rounded mb-4" style="background-color: var(--saas-surface-subtle); border: 1px solid var(--saas-border);">
+                    <MudGrid Spacing="2">
                         <MudItem xs="4">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">PRECIO DE VENTA</MudText>
-                            <MudText Typo="Typo.h6" Class="font-weight-bold">$@(selectedProduct?.Price.ToString("N2") ?? "0.00")</MudText>
+                            <span class="saas-kpi-label">Precio de Venta</span>
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--saas-text-primary);">
+                                $@(selectedProduct?.Price.ToString("N2") ?? "0.00")
+                            </div>
                         </MudItem>
                         <MudItem xs="4">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">COSTO INGREDIENTES</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Error" Class="font-weight-bold">$@ComputedTotalCost.ToString("N2")</MudText>
+                            <span class="saas-kpi-label">Costo Insumos</span>
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--saas-error-text);">
+                                $@ComputedTotalCost.ToString("N2")
+                            </div>
                         </MudItem>
                         <MudItem xs="4">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">MARGEN ESTIMADO</MudText>
-                            <MudChip T="string" Color="@MarginColor" Size="Size.Medium" Class="font-weight-bold">
-                                @ComputedMargin.ToString("N1")%
-                            </MudChip>
+                            <span class="saas-kpi-label">Margen Bruto</span>
+                            <div>
+                                <span class="saas-badge @(ComputedMargin >= 60 ? "saas-badge-success" : (ComputedMargin >= 40 ? "saas-badge-warning" : "saas-badge-error"))"
+                                      style="font-size: 0.9rem; font-weight: 700;">
+                                    @ComputedMargin.ToString("N1")%
+                                </span>
+                            </div>
                         </MudItem>
                     </MudGrid>
-                </MudCard>
+                </div>
 
                 <!-- Ingredients Table / Inputs -->
-                <div class="d-flex justify-space-between align-center mb-2">
-                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Ingredientes de la Receta</MudText>
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Ingredientes y Cantidades por Porción</MudText>
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Add" OnClick="AddIngredientRow">
                         Agregar Insumo
@@ -108,13 +129,13 @@
 
                 @if (!recipeRows.Any())
                 {
-                    <MudAlert Severity="Severity.Info" Class="mb-3">
-                        Este producto no tiene ingredientes asignados todavía. Agregá insumos para calcular su costo y descontar stock automáticamente.
-                    </MudAlert>
+                    <div class="pa-4 text-center rounded my-2" style="background-color: var(--saas-info-bg); border: 1px solid var(--saas-info-border); color: var(--saas-info-text); font-size: 0.875rem;">
+                        Este plato no tiene insumos asignados. Agregá materias primas para deducir stock en cada comanda.
+                    </div>
                 }
                 else
                 {
-                    <div style="max-height: 320px; overflow-y: auto;">
+                    <div style="max-height: 280px; overflow-y: auto;">
                         @foreach (var (row, index) in recipeRows.Select((r, i) => (r, i)))
                         {
                             var selectedSupply = availableSupplies.FirstOrDefault(s => s.Id == row.SupplyId);
@@ -122,9 +143,9 @@
                             var unitCost = selectedSupply?.CostPerUnit ?? 0m;
                             var subtotal = row.Quantity * unitCost;
 
-                            <div class="d-flex align-center gap-2 mb-2 pa-2 rounded" style="background: rgba(0,0,0,0.02); border: 1px solid #eee;">
+                            <div class="d-flex align-center gap-2 mb-2 pa-2 rounded" style="background: var(--saas-surface); border: 1px solid var(--saas-border);">
                                 <div style="flex: 2;">
-                                    <MudSelect T="int" @bind-Value="row.SupplyId" Label="Insumo" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                                    <MudSelect T="int" @bind-Value="row.SupplyId" Label="Insumo" Margin="Margin.Dense" Variant="Variant.Outlined">
                                         @foreach (var sup in availableSupplies)
                                         {
                                             <MudSelectItem Value="@sup.Id">@sup.Name (@sup.Unit - $@sup.CostPerUnit.ToString("N2"))</MudSelectItem>
@@ -135,11 +156,11 @@
                                     <MudNumericField @bind-Value="row.Quantity" Label="@($"Cant ({unit})")" Min="0.001m" Format="N3" Margin="Margin.Dense" Variant="Variant.Outlined" />
                                 </div>
                                 <div style="flex: 1; text-align: right;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Subtotal</MudText>
-                                    <MudText Typo="Typo.body2" Class="font-weight-bold">$@subtotal.ToString("N2")</MudText>
+                                    <span style="font-size: 0.7rem; color: var(--saas-text-secondary); display: block;">Costo</span>
+                                    <span style="font-weight: 700; color: var(--saas-text-primary);">$@subtotal.ToString("N2")</span>
                                 </div>
                                 <div>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveIngredientRow(index))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveIngredientRow(index))" />
                                 </div>
                             </div>
                         }
@@ -148,12 +169,13 @@
             }
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="@(() => recipeDialogVisible = false)">Cerrar</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => recipeDialogVisible = false)">Cerrar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveRecipeAsync" Disabled="savingRecipe">
                 @(savingRecipe ? "Guardando..." : "Guardar Receta")
             </MudButton>
         </DialogActions>
     </MudDialog>
+</MudContainer>
 
 </FeatureGate>
 
@@ -187,17 +209,6 @@
             if (selectedProduct == null || selectedProduct.Price <= 0) return 0;
             var cost = ComputedTotalCost;
             return ((selectedProduct.Price - cost) / selectedProduct.Price) * 100m;
-        }
-    }
-
-    private Color MarginColor
-    {
-        get
-        {
-            var m = ComputedMargin;
-            if (m >= 60) return Color.Success;
-            if (m >= 40) return Color.Warning;
-            return Color.Error;
         }
     }
 

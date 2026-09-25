@@ -9,63 +9,92 @@
 
 <FeatureGate Feature="@FeatureCodes.AdvancedInventory"
              FeatureName="Control Avanzado de Insumos y Stock"
-             Description="Gestioná insumos e ingredientes (harina, queso, carnes, bebidas), puntos de reposición con alertas de stock mínimo, registro de compras a proveedores y mermas con costeo automático.">
+             Description="Gestioná materias primas e ingredientes (harina, queso, carnes, bebidas), puntos de reposición con alertas de stock mínimo, registro de compras a proveedores y mermas con costeo automático.">
 
-    <div class="d-flex justify-space-between align-center mb-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-2 mb-8">
+    <div class="d-flex flex-wrap justify-space-between align-center mb-6 gap-2">
         <div>
-            <MudText Typo="Typo.h4" Color="Color.Primary">Insumos y Materias Primas</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Control de existencias, costos por unidad, compras y mermas.</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; letter-spacing: -0.02em;">Insumos y Materias Primas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Control de existencias, cálculo de CMV, registro de compras a proveedores y reporte de mermas.</MudText>
         </div>
-        <div class="d-flex gap-2">
-            <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.RemoveCircleOutline" OnClick="OpenWasteDialog">
+        <div class="d-flex flex-wrap gap-2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.RemoveCircleOutline" OnClick="OpenWasteDialog" Size="Size.Small">
                 Registrar Merma
             </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.AddShoppingCart" OnClick="OpenPurchaseDialog">
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.AddShoppingCart" OnClick="OpenPurchaseDialog" Size="Size.Small">
                 Ingreso de Compra
             </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog" Size="Size.Small">
                 Nuevo Insumo
             </MudButton>
         </div>
     </div>
 
     <!-- Metrics Cards -->
-    <MudGrid Class="mb-4">
+    <MudGrid Spacing="3" Class="mb-4">
         <MudItem xs="12" sm="4">
-            <MudCard Elevation="2" Class="pa-3">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">TOTAL INSUMOS ACTIVOS</MudText>
-                <MudText Typo="Typo.h5" Class="font-weight-bold">@supplies.Count</MudText>
-            </MudCard>
+            <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                <div>
+                    <div class="d-flex justify-space-between align-start mb-2">
+                        <span class="saas-kpi-label">Total Insumos</span>
+                        <div class="saas-kpi-icon-wrapper">
+                            <MudIcon Icon="@Icons.Material.Filled.Warehouse" Size="Size.Small" />
+                        </div>
+                    </div>
+                    <div class="saas-kpi-value">@supplies.Count</div>
+                </div>
+                <div class="saas-kpi-subtext">Materias primas activas en almacén</div>
+            </div>
         </MudItem>
+
         <MudItem xs="12" sm="4">
-            <MudCard Elevation="2" Class="pa-3">
-                <MudText Typo="Typo.caption" Color="Color.Error">INSUMOS CON STOCK CRÍTICO</MudText>
-                <MudText Typo="Typo.h5" Color="Color.Error" Class="font-weight-bold">
-                    @supplies.Count(s => s.IsLowStock)
-                </MudText>
-            </MudCard>
+            <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                <div>
+                    <div class="d-flex justify-space-between align-start mb-2">
+                        <span class="saas-kpi-label">Stock Crítico</span>
+                        <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-error-bg); color: var(--saas-error-text);">
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" />
+                        </div>
+                    </div>
+                    <div class="saas-kpi-value" style="color: var(--saas-error-text);">
+                        @supplies.Count(s => s.IsLowStock)
+                    </div>
+                </div>
+                <div class="saas-kpi-subtext">Insumos por debajo del punto de reposición</div>
+            </div>
         </MudItem>
+
         <MudItem xs="12" sm="4">
-            <MudCard Elevation="2" Class="pa-3">
-                <MudText Typo="Typo.caption" Color="Color.Primary">VALOR ESTIMADO EN INVENTARIO</MudText>
-                <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
-                    $@supplies.Sum(s => s.CurrentStock * s.CostPerUnit).ToString("N2")
-                </MudText>
-            </MudCard>
+            <div class="saas-kpi-card h-100 d-flex flex-column justify-space-between">
+                <div>
+                    <div class="d-flex justify-space-between align-start mb-2">
+                        <span class="saas-kpi-label">Valor en Inventario</span>
+                        <div class="saas-kpi-icon-wrapper" style="background-color: var(--saas-success-bg); color: var(--saas-success-text);">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" />
+                        </div>
+                    </div>
+                    <div class="saas-kpi-value">
+                        $@supplies.Sum(s => s.CurrentStock * s.CostPerUnit).ToString("N2")
+                    </div>
+                </div>
+                <div class="saas-kpi-subtext">Valoración monetaria del stock actual</div>
+            </div>
         </MudItem>
     </MudGrid>
 
     <!-- Filter Bar -->
-    <MudCard Elevation="1" Class="pa-3 mb-4">
-        <div class="d-flex flex-wrap align-center gap-4">
+    <div class="mud-paper pa-3 mb-4 d-flex flex-wrap align-center justify-space-between gap-3">
+        <div class="d-flex align-center gap-3 flex-grow-1" style="max-width: 500px;">
             <MudTextField @bind-Value="searchString" Placeholder="Buscar por nombre o proveedor..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" />
-            <MudSwitch @bind-Value="onlyLowStock" Label="Ver solo stock bajo mínimo" Color="Color.Error" />
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSupplies" StartIcon="@Icons.Material.Filled.Refresh">
+                          AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSupplies" Size="Size.Small">
                 Filtrar
             </MudButton>
         </div>
-    </MudCard>
+        <div>
+            <MudSwitch @bind-Value="onlyLowStock" Label="Ver solo stock bajo mínimo" Color="Color.Error" />
+        </div>
+    </div>
 
     @if (loading)
     {
@@ -73,70 +102,83 @@
     }
     else if (!filteredSupplies.Any())
     {
-        <MudPaper Class="pa-6 text-center" Elevation="1">
-            <MudText Typo="Typo.body1" Color="Color.Secondary">No se encontraron insumos.</MudText>
-        </MudPaper>
+        <div class="mud-paper pa-8 text-center text-muted">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">No se encontraron insumos</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Podés dar de alta materias primas desde el botón superior.</MudText>
+        </div>
     }
     else
     {
-        <MudTable Items="@filteredSupplies" Dense="true" Hover="true" Striped="true" Elevation="2">
-            <HeaderContent>
-                <MudTh>Insumo</MudTh>
-                <MudTh>Unidad</MudTh>
-                <MudTh Style="text-align: right;">Stock Actual</MudTh>
-                <MudTh Style="text-align: right;">Stock Mínimo</MudTh>
-                <MudTh Style="text-align: right;">Costo Unitario</MudTh>
-                <MudTh Style="text-align: right;">Valor Total</MudTh>
-                <MudTh>Proveedor</MudTh>
-                <MudTh>Estado Alerta</MudTh>
-                <MudTh Style="text-align: center;">Acciones</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd><b>@context.Name</b></MudTd>
-                <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Unit</MudChip></MudTd>
-                <MudTd Style="text-align: right; font-weight: bold;">
-                    @context.CurrentStock.ToString("N2") @context.Unit
-                </MudTd>
-                <MudTd Style="text-align: right;">
-                    @context.MinimumStock.ToString("N2") @context.Unit
-                </MudTd>
-                <MudTd Style="text-align: right;">
-                    $@context.CostPerUnit.ToString("N2")
-                </MudTd>
-                <MudTd Style="text-align: right;">
-                    $@((context.CurrentStock * context.CostPerUnit).ToString("N2"))
-                </MudTd>
-                <MudTd>@(string.IsNullOrWhiteSpace(context.Supplier) ? "-" : context.Supplier)</MudTd>
-                <MudTd>
-                    @if (context.IsLowStock)
-                    {
-                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Warning">
-                            Reponer Stock
-                        </MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined">
-                            Óptimo
-                        </MudChip>
-                    }
-                </MudTd>
-                <MudTd Style="text-align: center;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context))" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteSupply(context.Id))" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <div class="mud-paper overflow-hidden">
+            <MudTable Items="@filteredSupplies" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Insumo</MudTh>
+                    <MudTh>Unidad</MudTh>
+                    <MudTh Style="text-align: right;">Stock Actual</MudTh>
+                    <MudTh Style="text-align: right;">Stock Mínimo</MudTh>
+                    <MudTh Style="text-align: right;">Costo Unit.</MudTh>
+                    <MudTh Style="text-align: right;">Valor Total</MudTh>
+                    <MudTh>Proveedor</MudTh>
+                    <MudTh>Estado</MudTh>
+                    <MudTh Style="text-align: right;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span style="font-weight: 600; color: var(--saas-text-primary);">@context.Name</span>
+                    </MudTd>
+                    <MudTd>
+                        <span class="saas-badge saas-badge-neutral">@context.Unit</span>
+                    </MudTd>
+                    <MudTd Style="text-align: right; font-weight: 700; color: var(--saas-text-primary);">
+                        @context.CurrentStock.ToString("N2")
+                    </MudTd>
+                    <MudTd Style="text-align: right; color: var(--saas-text-secondary);">
+                        @context.MinimumStock.ToString("N2")
+                    </MudTd>
+                    <MudTd Style="text-align: right;">
+                        $@context.CostPerUnit.ToString("N2")
+                    </MudTd>
+                    <MudTd Style="text-align: right; font-weight: 600;">
+                        $@((context.CurrentStock * context.CostPerUnit).ToString("N2"))
+                    </MudTd>
+                    <MudTd>@(string.IsNullOrWhiteSpace(context.Supplier) ? "-" : context.Supplier)</MudTd>
+                    <MudTd>
+                        @if (context.IsLowStock)
+                        {
+                            <span class="saas-badge saas-badge-error">Reponer Stock</span>
+                        }
+                        else
+                        {
+                            <span class="saas-badge saas-badge-success">Óptimo</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align: right;">
+                        <MudTooltip Text="Editar Insumo">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                           OnClick="@(() => OpenEditDialog(context))" Style="width: 28px; height: 28px; padding: 2px;" />
+                        </MudTooltip>
+                        <MudTooltip Text="Eliminar Insumo">
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeleteSupply(context.Id))" Style="width: 28px; height: 28px; padding: 2px;" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </div>
     }
 
     <!-- Dialog Create / Edit Supply -->
     <MudDialog @bind-Visible="supplyDialogVisible" Options="dialogOptions">
         <TitleContent>
-            <MudText Typo="Typo.h6">@(isEditing ? "Editar Insumo" : "Nuevo Insumo")</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">@(isEditing ? "Editar Insumo" : "Nuevo Insumo")</MudText>
+            </div>
         </TitleContent>
         <DialogContent>
             <MudTextField @bind-Value="supplyModel.Name" Label="Nombre del Insumo (ej. Harina 000, Muzzarella)" Variant="Variant.Outlined" Required="true" Class="mb-3" />
-            <MudSelect @bind-Value="supplyModel.Unit" Label="Unidad de Medida" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelect @bind-Value="supplyModel.Unit" Label="Unidad de Medida" Variant="Variant.Outlined" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
                 <MudSelectItem Value="@("kg")">Kilogramos (kg)</MudSelectItem>
                 <MudSelectItem Value="@("gr")">Gramos (gr)</MudSelectItem>
                 <MudSelectItem Value="@("lt")">Litros (lt)</MudSelectItem>
@@ -150,11 +192,11 @@
             </div>
             <div class="d-flex gap-3 mb-3">
                 <MudNumericField @bind-Value="supplyModel.CostPerUnit" Label="Costo por Unidad ($)" Variant="Variant.Outlined" Min="0m" Format="N2" />
-                <MudTextField @bind-Value="supplyModel.Supplier" Label="Proveedor Habitual" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="supplyModel.Supplier" Label="Proveedor Habitual (Opcional)" Variant="Variant.Outlined" />
             </div>
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="@(() => supplyDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => supplyDialogVisible = false)">Cancelar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSupplyAsync" Disabled="saving">
                 @(saving ? "Guardando..." : "Guardar Insumo")
             </MudButton>
@@ -164,10 +206,13 @@
     <!-- Dialog Register Waste / Merma -->
     <MudDialog @bind-Visible="wasteDialogVisible" Options="dialogOptions">
         <TitleContent>
-            <MudText Typo="Typo.h6">Registrar Desperdicio o Merma</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.RemoveCircleOutline" Color="Color.Warning" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Registrar Desperdicio o Merma</MudText>
+            </div>
         </TitleContent>
         <DialogContent>
-            <MudSelect @bind-Value="wasteModel.SupplyId" Label="Seleccionar Insumo" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelect @bind-Value="wasteModel.SupplyId" Label="Seleccionar Insumo" Variant="Variant.Outlined" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
                 @foreach (var s in supplies)
                 {
                     <MudSelectItem Value="@s.Id">@s.Name (@s.Unit) - Actual: @s.CurrentStock @s.Unit</MudSelectItem>
@@ -177,7 +222,7 @@
             <MudTextField @bind-Value="wasteModel.Reason" Label="Causa de la Merma (vencimiento, cocción, rotura)" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="@(() => wasteDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => wasteDialogVisible = false)">Cancelar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="SaveWasteAsync" Disabled="savingWaste">
                 @(savingWaste ? "Registrando..." : "Confirmar Merma")
             </MudButton>
@@ -187,13 +232,16 @@
     <!-- Dialog Quick Purchase Entry -->
     <MudDialog @bind-Visible="purchaseDialogVisible" Options="dialogOptions">
         <TitleContent>
-            <MudText Typo="Typo.h6">Ingreso de Compra a Proveedor</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Color="Color.Success" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Ingreso de Compra a Proveedor</MudText>
+            </div>
         </TitleContent>
         <DialogContent>
             <MudTextField @bind-Value="purchaseSupplierName" Label="Proveedor" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="purchaseInvoiceNumber" Label="N° Factura / Remito (Opcional)" Variant="Variant.Outlined" Class="mb-3" />
 
-            <MudSelect @bind-Value="purchaseSupplyId" Label="Insumo Adquirido" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelect @bind-Value="purchaseSupplyId" Label="Insumo Adquirido" Variant="Variant.Outlined" Class="mb-3" AnchorOrigin="Origin.BottomCenter">
                 @foreach (var s in supplies)
                 {
                     <MudSelectItem Value="@s.Id">@s.Name (@s.Unit)</MudSelectItem>
@@ -205,18 +253,19 @@
             </div>
             @if (purchaseQuantity > 0 && purchaseUnitCost > 0)
             {
-                <MudAlert Severity="Severity.Info" Class="mb-2">
-                    Total Compra: <b>$@((purchaseQuantity * purchaseUnitCost).ToString("N2"))</b>
-                </MudAlert>
+                <div class="pa-3 rounded mb-2" style="background-color: var(--saas-success-bg); border: 1px solid var(--saas-success-border); color: var(--saas-success-text); font-size: 0.875rem;">
+                    Total Compra a Ingresar: <b>$@((purchaseQuantity * purchaseUnitCost).ToString("N2"))</b>
+                </div>
             }
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="@(() => purchaseDialogVisible = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => purchaseDialogVisible = false)">Cancelar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SavePurchaseAsync" Disabled="savingPurchase">
                 @(savingPurchase ? "Registrando..." : "Confirmar Compra y Sumar Stock")
             </MudButton>
         </DialogActions>
     </MudDialog>
+</MudContainer>
 
 </FeatureGate>
 

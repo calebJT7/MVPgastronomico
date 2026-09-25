@@ -3,39 +3,36 @@
 @inject SaaSStateService SaaSState
 @implements IDisposable
 
-<MudNavMenu>
-    <div class="px-4 py-3 d-flex justify-space-between align-center">
-        <div class="d-flex align-center">
-            <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Color="Color.Primary" Class="mr-2" />
-            <div>
-                <MudText Typo="Typo.subtitle1" Class="font-weight-bold" Style="line-height: 1.2;">
+<MudNavMenu Class="px-2 py-2" Color="Color.Primary" Bordered="false">
+    <div class="px-3 py-3 mb-1 d-flex justify-space-between align-center" style="border-bottom: 1px solid var(--saas-border-subtle);">
+        <div class="d-flex align-center gap-2" style="overflow: hidden;">
+            <div style="width: 28px; height: 28px; min-width: 28px; border-radius: 6px; background: var(--saas-primary); display: flex; align-items: center; justify-content: center; color: var(--saas-primary-text);">
+                <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Small" />
+            </div>
+            <div style="overflow: hidden;">
+                <MudText Typo="Typo.subtitle2" Class="font-weight-bold" Style="line-height: 1.2; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
                     @(SaaSState.CurrentBusiness?.TradeName ?? "SaaS Gastronómico")
                 </MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Gestión Gastronómica</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.7rem;">
+                    Local Activo
+                </MudText>
             </div>
         </div>
         <div>
             @if (SaaSState.IsTester)
             {
-                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BugReport">
-                    TESTER
-                </MudChip>
+                <span class="saas-badge saas-badge-info" style="font-size: 0.65rem;">TESTER</span>
             }
             else if (SaaSState.IsPremium)
             {
-                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WorkspacePremium">
-                    PREMIUM
-                </MudChip>
+                <span class="saas-badge saas-badge-warning" style="font-size: 0.65rem;">PREMIUM</span>
             }
             else
             {
-                <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">
-                    BÁSICO
-                </MudChip>
+                <span class="saas-badge saas-badge-neutral" style="font-size: 0.65rem;">BÁSICO</span>
             }
         </div>
     </div>
-    <MudDivider Class="mb-2" />
 
     <MudNavGroup Title="Punto de Venta" Icon="@Icons.Material.Filled.PointOfSale" Expanded="true">
         <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ShoppingCart">
@@ -113,7 +110,7 @@
         </Authorized>
     </AuthorizeView>
 
-    <MudDivider Class="my-2" />
+    <MudDivider Class="my-3" />
     <MudNavLink Href="/legal" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Gavel">
         Términos Legales
     </MudNavLink>
